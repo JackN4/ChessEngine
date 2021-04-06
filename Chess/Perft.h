@@ -11,13 +11,16 @@ public: int calculate_perft(Board board, int depth) {
 	int total = 0;
 	int movesNum;
 	for (Move move : moves) {
-		moveGen.board.make_move(move);
-		//display.display_board(moveGen.board);
-		movesNum = calculate_moves(moveGen, depth - 1);
+		if (depth == 1) {
+			movesNum = 1;
+		}
+		else {
+			moveGen.board.make_move(move);
+			movesNum = calculate_moves(moveGen, depth - 1);
+			moveGen.board.unmake_move(move);
+		}
 		total += movesNum;
 		cout << move.move_to_lerf() << ": " << movesNum << "\n";
-		moveGen.board.unmake_move(move);
-		//display.display_board(moveGen.board);
 	}
 	cout << "total: " << total << "\n";
 	return total;
@@ -25,10 +28,10 @@ public: int calculate_perft(Board board, int depth) {
 
 
 private: int calculate_moves(MoveCreator &moveGen, int depth) {
-	if (depth == 0) {
-		return 1;
-	}
 	list<Move> moves = moveGen.get_all_moves();
+	if (depth == 1) {
+		return moves.size();
+	}
 	int total = 0;
 	for (Move move : moves) {
 		moveGen.board.make_move(move);

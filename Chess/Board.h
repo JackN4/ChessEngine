@@ -29,6 +29,15 @@ public: uint64_t bitboards[8] = {0};
 		move.castlingBefore = castling[toMove];
 		if (move.pieceType == king) {
 			castling[toMove] = 0;
+			if (move.castling != 0) {
+				int row = 56 * toMove;
+				if (move.castling == 1) {
+					move_piece(rook, 0 + row, 3 + row, toMove);
+				}
+				else {
+					move_piece(rook, 7 + row, 5 + row, toMove);
+				}
+			}
 		}
 		else if (move.pieceType == rook) {
 			if (move.startPos == 0 + 56 * toMove) {
@@ -38,29 +47,20 @@ public: uint64_t bitboards[8] = {0};
 				castling[toMove] &= ~(1UL<<1);
 			}
 		}
-		if (move.castling != 0) {
-			int row = 56 * toMove;
-			if (move.castling == 1) {
-				move_piece(rook, 0 + row, 3+row, toMove);
-			}
-			else {
-				move_piece(rook, 7 + row, 5 + row, toMove);
-			}
-		}
 	}
 
 	private: void change_turn() {
 		toNotMove = toMove;
-		toMove = 1 - toMove;
+		toMove ^= 1;
 	}
 
 	private: void check_for_en_passant(Move &move) {
-		//might need to add enPassant change to move class
-		if (move.enPassant) {
+		//move.enPassantBefore = enPassant;
+		if (move.enPassant != 0) {
 			remove_piece(pawn, enPassantCapture, toNotMove);
 			return;
 		}
-		else if (move.pieceType == pawn && abs(move.startPos - move.endPos) > 8) {
+		else if (move.pieceType == pawn && abs(move.startPos - move.endPos) == 16) {
 			enPassantCapture = move.endPos;
 			enPassant = move.endPos + (move.startPos - move.endPos )/2;
 		}
@@ -95,15 +95,15 @@ public: void unmake_move(Move& move) {
 	change_turn();
 	unmake_castling(move);
 	unmake_enPassant(move);
-	if (move.pieceCapture != 0 && move.enPassant == 0) {
-		add_piece(move.pieceCapture, move.endPos, toNotMove);
-	}
 	if (move.promoPiece == 0) {
 		move_piece(move.pieceType, move.endPos, move.startPos, toMove);
 	}
 	else {
 		add_piece(move.pieceType, move.startPos, toMove);
 		remove_piece(move.promoPiece, move.endPos, toMove);
+	}
+	if (move.pieceCapture != 0 && move.enPassant == 0) {
+		add_piece(move.pieceCapture, move.endPos, toNotMove);
 	}
 	}
 
@@ -170,6 +170,7 @@ public: Piece get_piece_from_pos(int pos) {
 }
 
 private: void unmake_enPassant(Move& move) {
+	//enPassant = move.enPassantBefore;
 	if (move.enPassant != 0) {
 		add_piece(pawn, move.enPassant, toNotMove);
 	}

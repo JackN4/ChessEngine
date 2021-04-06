@@ -7,53 +7,42 @@
 using std::cout;
 using std::string;
 using N::Piece;
-const uint64_t notAFile = 0xfefefefefefefefe;
-const uint64_t notHFile = 0x7f7f7f7f7f7f7f7f;
+
+
 const uint64_t notGHFile = 0x3f3f3f3f3f3f3f3f;
 const uint64_t notABFile = 0xfcfcfcfcfcfcfcfc;
 
 class Lookups
 {
+public:	const uint64_t notAFile = 0xfefefefefefefefe;
+public:	const uint64_t notHFile = 0x7f7f7f7f7f7f7f7f;
+public: const uint64_t rank3 = 0xff0000;
+public: const uint64_t rank6 = 0xff0000000000;
+public: const uint64_t rank18 = 0xff000000000000ff;
 public: uint64_t slideMoves[64][8]; //64 squares {7,8,9,1,-7,-8,-9,-1}  -7 not working
 public:	uint64_t pawnAttacks[64][2];
-public:	uint64_t pawnQuiet[64][2];
 public:	uint64_t kingMoves[64];
 public:	uint64_t knightMoves[64];
 
 public: Lookups() {
-	make_pawn_attacks_lookup();
-	make_pawn_quiet_lookup();
 	make_slide_moves_lookup();
 	make_knight_lookup();
 	make_king_lookup();
+	make_pawn_attacks_lookup();
 }
-private: void display_BB(uint64_t BB) {
-	int pos;
-	int sqr;
-	for (int rank = 7; rank >= 0; rank--) {
-		for (int file = 0; file <= 7; file++) {
-			pos = rank * 8 + file;
-			sqr = (BB >> pos) & 1U;
-			cout << sqr;
-		}
-		cout << "\n";
-	}
-	cout << "\n";
-}
-/*private: void debug() {
-	for (int i = 0; i < 64; i++) {
-		cout << "i:" << i << "\n";
-		display_BB(knightMoves[i]);
-	}
-}*/
+
 private:
 	void make_king_lookup() {
 		uint64_t movesBB;
+		int pos;
 		for (int i = 0; i < 64; i++) {
 			movesBB = 0;
 			int moves[8] = { 7,8,9,1,-7,-8,-9,-1 };
 			for (int move : moves) {
-				movesBB |= 1ULL << (i+move);
+				pos = i + move;
+				if (pos >= 0 && pos < 64) {
+					movesBB |= 1ULL << pos;
+				}
 			}
 			if(i % 8 == 0){
 				movesBB &= notHFile;
@@ -74,7 +63,9 @@ private:
 			movesBB = 0;
 			for (int move : moves) {
 				pos = i + move;
-				movesBB |= 1ULL << pos;
+				if (pos >= 0 && pos < 64) {
+					movesBB |= 1ULL << pos;
+				}
 			}
 			if (i % 8 == 0){
 				movesBB &= notGHFile;
@@ -110,33 +101,14 @@ private:
 			pawnAttacks[i][0] = attacks;
 			attacks = 0;
 			pos = i - 7;
-			if (pos % 8 != 0) {
+			if (pos >= 0 && pos < 64 && pos % 8 != 0) {
 				attacks |= 1ULL << pos;
 			}
 			pos = i - 9;
-			if (pos % 8 != 7) {
+			if (pos >= 0 && pos < 64 && pos % 8 != 7) {
 				attacks |= 1ULL << pos;
 			}
 			pawnAttacks[i][1] = attacks;
-		}
-	}
-
-private:
-	void make_pawn_quiet_lookup() { //works
-		uint64_t moves;
-		for (int i = 0; i < 64; i++) {
-			moves = 0; // white
-			moves |= 1ULL << (i+8);
-			if (i / 8 == 1) {
-				moves |= 1ULL << (i+16);
-			}
-			pawnQuiet[i][0] = moves;
-			moves = 0; //black
-			moves |= 1ULL << (i-8);
-			if (i / 8 == 6) {
-				moves |= 1ULL << (i-16);
-			}
-			pawnQuiet[i][1] = moves;
 		}
 	}
 
@@ -163,9 +135,5 @@ private:
 			}
 		}
 	}
-
-private: void make_king_pawn_attacks_lookup() {
-
-}
 };
 

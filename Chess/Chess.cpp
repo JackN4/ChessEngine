@@ -56,7 +56,7 @@ int main()
             }
             board.create_from_FEN(FEN);
             if (movesPos != string::npos) {
-                std::istringstream iss(input.substr(movesPos+5));
+                std::istringstream iss(input.substr(movesPos + 5));
                 string move;
                 while (std::getline(iss, move, ' ')) {
                     if (move.length() == 4 || move.length() == 5) {
@@ -64,12 +64,14 @@ int main()
                     }
                 }
             }
-            display.display_board(board);
         }
         else if (input == "moves debug") {
             MoveCreator moveGen = MoveCreator(board);
             list<Move> moves = moveGen.get_all_moves();
             display.display_all_moves(moves);
+        }
+        else if (input == "display") {
+             display.display_board(board);
         }
         else if (input.rfind("perft", 0) == 0) {
             Perft perft;

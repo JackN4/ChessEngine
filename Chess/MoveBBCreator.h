@@ -3,6 +3,7 @@
 #include "Lookups.h"
 #include "BitOperations.h"
 
+using std::pair;
 
 
 
@@ -91,7 +92,7 @@ bool can_kingside_castle(uint64_t allBB, int colour) {
 	return true;
 }
 
-uint64_t get_knight_BB(int pos, uint64_t ownColourBB, uint64_t allBB) { //addded all so would have same arguments should probably fix
+uint64_t get_knight_BB(int pos, uint64_t allBB, uint64_t ownColourBB) { //addded all so would have same arguments should probably fix
 	return lookup.knightMoves[pos] & ~ownColourBB;
 }
 
@@ -100,13 +101,39 @@ uint64_t get_knight_BB_empty(int pos) { //addded all so would have same argument
 }
 
 
-
-uint64_t get_pawn_quiet_BB(int pos, uint64_t allBB, int colour) {
-	return lookup.pawnQuiet[pos][colour] & ~allBB;
+pair<uint64_t, uint64_t> get_white_pawn_quiet(uint64_t pawnBB, uint64_t availableBB) { //single push, double push
+	pair<uint64_t, uint64_t> moves;
+	moves.first = (pawnBB << 8) & availableBB;
+	moves.second = ((moves.first & lookup.rank3) << 8) & availableBB;
+	return moves;
 }
 
-uint64_t get_pawn_attack_BB(int pos, uint64_t oppColourBB, int colour) {
-	return lookup.pawnAttacks[pos][colour] & oppColourBB;
+pair<uint64_t, uint64_t> get_white_pawn_attack(uint64_t pawnBB, uint64_t oppBB) { //left attack, right attack
+	pair<uint64_t, uint64_t> moves;
+	moves.first = ((pawnBB << 7) & lookup.notHFile) & oppBB;
+	moves.second = ((pawnBB << 9) & lookup.notAFile) & oppBB;
+	return moves;
+}
+
+pair<uint64_t, uint64_t> get_black_pawn_quiet(uint64_t pawnBB, uint64_t availableBB) { //single push, double push
+	pair<uint64_t, uint64_t> moves;
+	moves.first = (pawnBB >> 8) & availableBB;
+	moves.second = ((moves.first & lookup.rank6) >> 8) & availableBB;
+	return moves;
+}
+
+pair<uint64_t, uint64_t> get_black_pawn_attack(uint64_t pawnBB, uint64_t oppBB) { //left attack, right attack
+	pair<uint64_t, uint64_t> moves;
+	moves.first = ((pawnBB >> 9) & lookup.notHFile) & oppBB;
+	moves.second = ((pawnBB >> 7) & lookup.notAFile) & oppBB;
+	return moves;
+}
+
+pair<uint64_t, uint64_t> get_promo_BB(uint64_t movesBB) {//unpromoted, promoted
+	pair<uint64_t, uint64_t> BBs;
+	BBs.second = movesBB & lookup.rank18;
+	BBs.first = movesBB ^ BBs.second;
+	return BBs;
 }
 
 bool sqr_empty(uint64_t BB,int pos) {
