@@ -1,7 +1,8 @@
 #pragma once
 #include "MoveCreator.h"
 #include "BoardDisplay.h"
-#include <time.h>
+#include <chrono>
+using namespace std::chrono;
 
 class Perft
 {
@@ -11,8 +12,8 @@ public: int calculate_perft_bulk(Board board, int depth, bool debug) {
 	BoardDisplay display;
 	int total = 0;
 	int movesNum;
-	time_t seconds1, seconds2;
-	seconds1 = time(NULL);
+	int time1, time2;
+	time1 = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
 	string lerf;
 	for (Move move : moves) {
 		lerf = move.move_to_lerf();
@@ -30,8 +31,8 @@ public: int calculate_perft_bulk(Board board, int depth, bool debug) {
 			display.display_board(board);
 		}
 	}
-	seconds2 = time(NULL);
-	float secondsTotal = seconds2 - seconds1;
+	time2 = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
+	float secondsTotal = ((float)(time2 - time1))/1000;
 	float nodesSecond = total / secondsTotal;
 	cout << "total: " << total << "\n";
 	cout << "nodes per sceond: " << nodesSecond << "\n";
