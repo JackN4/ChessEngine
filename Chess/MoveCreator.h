@@ -248,7 +248,7 @@ private: void get_king_moves() {
 			allMoves[5].capture.emplace_back(Move(king, pos, endPos, pieceCaptured));
 		}
 	}
-	if (checkers = 0) {
+	if (checkers == 0) {
 		if (can_queenside_castle(castling)) { //queenside
 			allMoves[5].quiet.emplace_back(Move(king, pos, pos - 2, white, 1));
 		}
