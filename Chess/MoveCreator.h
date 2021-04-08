@@ -84,12 +84,11 @@ public: list<Move> get_all_moves() {
 	else {
 		get_pinned_moves();
 		get_non_pinned_moves();
-		list<Move> allMovesFinal;
 	}
 	list<Move> allMovesFinal;
-	for (MoveResults pieceMoves : allMoves) { //order moves
-		allMovesFinal.splice(allMovesFinal.end(), pieceMoves.quiet);
-		allMovesFinal.splice(allMovesFinal.end(), pieceMoves.capture);
+	for (int i = 0; i < 6; i++) { //order moves
+		allMovesFinal.splice(allMovesFinal.end(), allMoves[i].quiet);
+		allMovesFinal.splice(allMovesFinal.end(), allMoves[i].capture);
 	}
 	return allMovesFinal;
 }
@@ -316,89 +315,85 @@ private: void get_pinned_pawn(Pinned pinnedPawn) {
 
 private: list<Move> get_promo_moves(int startPos, int endPos, Piece capture = white) {
 	list<Move> results;
-	for (int j = 3; j < 7; j++) {
-		results.emplace_back(Move(pawn, startPos, endPos, capture, 0, (Piece)j));
-	}
+	
 	return results;
 }
 
 
-private: list<Move> pawn_quietBB_to_moves(uint64_t moveBB, int diff) {//do promo in here
+private: void pawn_quietBB_to_moves(uint64_t moveBB, int diff) {//do promo in here
 	moveBB &= checkingBB;
-	list<Move> results;
 	pair<uint64_t, uint64_t> promos = bbCreator.get_promo_BB(moveBB);
 	pair<int*, int> fullScan = bitOp.full_bitscan(promos.first);
 	int pos;
 	for (int i = 0; i < fullScan.second; i++) {
 		pos = fullScan.first[i];
-		results.emplace_back(Move(pawn, pos + diff, pos));
+		allMoves[0].quiet.emplace_back(Move(pawn, pos + diff, pos));
 	}
 	fullScan = bitOp.full_bitscan(promos.second);
 	for (int i = 0; i < fullScan.second; i++) {
 		pos = fullScan.first[i];
-		results.splice(results.end(), get_promo_moves(pos + diff, pos));
+		for (int j = 3; j < 7; j++) {
+			allMoves[0].quiet.emplace_back(Move(pawn, pos+diff, pos, white, 0, (Piece)j));
+		}
 	}
-	return results;
 }
 
-private: list<Move> pawn_captureBB_to_moves(uint64_t moveBB, int diff) {//do promo in here
+private: void pawn_captureBB_to_moves(uint64_t moveBB, int diff) {//do promo in here
 	moveBB &= checkingBB;
-	list<Move> results;
 	pair<uint64_t, uint64_t> promos = bbCreator.get_promo_BB(moveBB);
 	pair<int*, int> fullScan = bitOp.full_bitscan(promos.first);
 	int pos;
 	for (int i = 0; i < fullScan.second; i++) {
 		pos = fullScan.first[i];
-		results.emplace_back(Move(pawn, pos + diff, pos, board.get_piece_from_pos(pos)));
+		allMoves[0].capture.emplace_back(Move(pawn, pos + diff, pos, board.get_piece_from_pos(pos)));
 	}
 	fullScan = bitOp.full_bitscan(promos.second);
 	for (int i = 0; i < fullScan.second; i++) {
 		pos = fullScan.first[i];
-		results.splice(results.end(), get_promo_moves(pos + diff, pos, board.get_piece_from_pos(pos)));
+		for (int j = 3; j < 7; j++) {
+			allMoves[0].capture.emplace_back(Move(pawn, pos + diff, pos, white, 0, board.get_piece_from_pos(pos)));
+		}
 	}
-	return results;
 }
 
-private: list<Move> pawn_enPassantBB_to_moves(uint64_t moveBB, int diff) {//do promo in here
-	list<Move> results;
+private: void pawn_enPassantBB_to_moves(uint64_t moveBB, int diff) {//do promo in here
 	pair<int*, int> fullScan = bitOp.full_bitscan(moveBB);
 	int pos;
 	for (int i = 0; i < fullScan.second; i++) {
 		pos = fullScan.first[i];
 		int startPos = pos + diff;
 		if (!(check_after_enpassant(startPos))) {
-			results.emplace_back(Move(pawn, pos + diff, pos, pawn, 0, white, board.enPassant));
+			allMoves[0].capture.emplace_back(Move(pawn, pos + diff, pos, pawn, 0, white, board.enPassant));
 		}
 	}
-	return results;
 }
 
 private: void get_pawn_moves(uint64_t pawnBB, uint64_t emptyBB, uint64_t oppBB) { //rename
 	if (board.toMove == 0) {
 		pair<uint64_t, uint64_t> quiet = bbCreator.get_white_pawn_quiet(pawnBB, emptyBB);
 		pair<uint64_t, uint64_t> capture = bbCreator.get_white_pawn_attack(pawnBB, oppBB);
-		allMoves[0].quiet.splice(allMoves[0].quiet.end(), pawn_quietBB_to_moves(quiet.first, -8));
-		allMoves[0].quiet.splice(allMoves[0].quiet.end(), pawn_quietBB_to_moves(quiet.second, -16));
-		allMoves[0].capture.splice(allMoves[0].capture.end(), pawn_captureBB_to_moves(capture.first, -7));
-		allMoves[0].capture.splice(allMoves[0].capture.end(), pawn_captureBB_to_moves(capture.second, -9));
+		pawn_quietBB_to_moves(quiet.first, -8);
+		pawn_quietBB_to_moves(quiet.second, -16);
+		pawn_captureBB_to_moves(capture.first, -7);
+		pawn_captureBB_to_moves(capture.second, -9);
 		if (board.enPassant != 0) {
 			pair<uint64_t, uint64_t> enPassant = bbCreator.get_white_pawn_attack(pawnBB, (1ULL << board.enPassant));
-			allMoves[0].capture.splice(allMoves[0].capture.end(), pawn_enPassantBB_to_moves(enPassant.first, -7));
-			allMoves[0].capture.splice(allMoves[0].capture.end(), pawn_enPassantBB_to_moves(enPassant.second, -9));
+			pawn_enPassantBB_to_moves(enPassant.first, -7);
+			pawn_enPassantBB_to_moves(enPassant.second, -9);
 		}
 	}
 	else
 	{
 		pair<uint64_t, uint64_t> quiet = bbCreator.get_black_pawn_quiet(pawnBB, emptyBB);
 		pair<uint64_t, uint64_t> capture = bbCreator.get_black_pawn_attack(pawnBB, oppBB);
-		allMoves[0].quiet.splice(allMoves[0].quiet.end(), pawn_quietBB_to_moves(quiet.first, 8));
-		allMoves[0].quiet.splice(allMoves[0].quiet.end(), pawn_quietBB_to_moves(quiet.second, 16));
-		allMoves[0].capture.splice(allMoves[0].capture.end(), pawn_captureBB_to_moves(capture.first, 9));
-		allMoves[0].capture.splice(allMoves[0].capture.end(), pawn_captureBB_to_moves(capture.second, 7));
+		pawn_quietBB_to_moves(quiet.first, 8);
+		pawn_quietBB_to_moves(quiet.second, 16);
+		pawn_captureBB_to_moves(capture.first, 9);
+		pawn_captureBB_to_moves(capture.second, 7);
 		if (board.enPassant != 0) {
 			pair<uint64_t, uint64_t> enPassant = bbCreator.get_black_pawn_attack(pawnBB, (1ULL << board.enPassant));
-			allMoves[0].capture.splice(allMoves[0].capture.end(), pawn_enPassantBB_to_moves(enPassant.first, 9));
-			allMoves[0].capture.splice(allMoves[0].capture.end(), pawn_enPassantBB_to_moves(enPassant.second, 7));
+			pawn_enPassantBB_to_moves(enPassant.first, 9);
+			pawn_enPassantBB_to_moves(enPassant.second, 7);
 		}
 	}
 }
