@@ -23,7 +23,7 @@ public: uint64_t bitboards[8] = {0};
 	int toMove= 0;
 	int toNotMove = 0;
 	int castling[2] = { 0,0 }; //KQkq
-	int enPassant, enPassantCapture;
+	int enPassant;
 
 	private: void check_for_castle(Move &move) {
 		move.castlingBefore = castling[toMove];
@@ -55,13 +55,18 @@ public: uint64_t bitboards[8] = {0};
 	}
 
 	private: void check_for_en_passant(Move &move) {
-		//move.enPassantBefore = enPassant;
-		if (move.enPassant != 0) {
-			remove_piece(pawn, enPassantCapture, toNotMove);
+		move.enPassantBefore = enPassant;
+		if (move.enPassant) {
+			if (toMove == 0) {
+				remove_piece(pawn, enPassant - 8, toNotMove);
+			}
+			else {
+				remove_piece(pawn, enPassant + 8, toNotMove);
+			}
+			enPassant = 0;
 			return;
 		}
 		else if (move.pieceType == pawn && abs(move.startPos - move.endPos) == 16) {
-			enPassantCapture = move.endPos;
 			enPassant = move.endPos + (move.startPos - move.endPos )/2;
 		}
 		else{
@@ -102,7 +107,7 @@ public: void unmake_move(Move& move) {
 		add_piece(move.pieceType, move.startPos, toMove);
 		remove_piece(move.promoPiece, move.endPos, toMove);
 	}
-	if (move.pieceCapture != 0 && move.enPassant == 0) {
+	if (move.pieceCapture != 0 && !(move.enPassant)) {
 		add_piece(move.pieceCapture, move.endPos, toNotMove);
 	}
 	}
@@ -170,9 +175,14 @@ public: Piece get_piece_from_pos(int pos) {
 }
 
 private: void unmake_enPassant(Move& move) {
-	//enPassant = move.enPassantBefore;
-	if (move.enPassant != 0) {
-		add_piece(pawn, move.enPassant, toNotMove);
+	enPassant = move.enPassantBefore;
+	if (move.enPassant) {
+		if (toMove == 0) {
+			add_piece(pawn, move.endPos - 8, toNotMove);
+		}
+		else {
+			add_piece(pawn, move.endPos + 8, toNotMove);
+		}
 	}
 }
 

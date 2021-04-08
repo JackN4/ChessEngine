@@ -10,8 +10,7 @@ using std::string;
 
 struct Move
 {
-int startPos, endPos, castling, castlingBefore;
-// int enPassantBefore;
+int startPos, endPos, castling, castlingBefore, enPassantBefore;
 Piece pieceType, pieceCapture, promoPiece;
 //public: list<Pinned> addPinned[2], removedPinned[2];
 bool enPassant;

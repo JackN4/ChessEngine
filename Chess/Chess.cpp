@@ -22,6 +22,7 @@ int main()
     Board board; //Create Board
     BoardDisplay display;
     string input;
+    bool debug = false;
     while (true) {
         getline(cin, input);
         if (input == "uci") {
@@ -64,6 +65,9 @@ int main()
                     }
                 }
             }
+            if (debug) {
+                display.display_board(board);
+            }
         }
         else if (input == "moves debug") {
             MoveCreator moveGen = MoveCreator(board);
@@ -73,12 +77,29 @@ int main()
         else if (input == "display") {
              display.display_board(board);
         }
+        else if (input.rfind("perftNB", 0) == 0) {
+            Perft perft;
+            string depthStr = input.substr(8);
+            depthStr.erase(remove_if(depthStr.begin(), depthStr.end(), isspace), depthStr.end());
+            int depth = stoi(depthStr);
+            perft.calculate_perft(board, depth, debug);
+        }
         else if (input.rfind("perft", 0) == 0) {
             Perft perft;
             string depthStr = input.substr(6);
             depthStr.erase(remove_if(depthStr.begin(), depthStr.end(), isspace), depthStr.end());
             int depth = stoi(depthStr);
-            perft.calculate_perft(board, depth);
+            perft.calculate_perft_bulk(board, depth, debug);
+        }
+        else if (input == "debug") {
+            if (debug) {
+                cout << "debug mode is now off\n";
+                debug = false;
+            }
+            else {
+                cout << "debug mode is now on\n";
+                debug = true;
+            }
         }
     }
 }

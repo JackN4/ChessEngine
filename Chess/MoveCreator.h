@@ -50,7 +50,7 @@ public: Board board;
 	uint64_t checkingBB = 0;
 	MoveResults allMoves[6];
 	uint64_t pinnedBB = 0;
-	uint64_t ownColourBB, oppColourBB, allBB = 0;
+	uint64_t ownColourBB = 0, oppColourBB = 0, allBB = 0;
 
 
 public: MoveCreator(Board &boardIn) {
@@ -186,7 +186,7 @@ private: void get_all_attackers_pinned(int* moves, uint64_t attackers, int pos, 
 					blockerPos2 = bbCreator.get_blocker_pos(blockersBB, moves[i]);
 					if (((1ULL << blockerPos2) & attackers) != 0) {
 						pinnedBB = bbCreator.lookup.slideMoves[blockerPos][moves[i]] ^ bbCreator.lookup.slideMoves[blockerPos2][moves[i]];
-						pinnedPieces.emplace_back(Pinned(board.get_piece_from_pos(blockerPos), blockerPos, blockerPos2, pinnedBB));
+						pinnedPieces.emplace_back(Pinned(board.get_piece_from_pos(blockerPos), blockerPos, blockerPos2, rayBB));
 					}
 				}
 			}
@@ -384,7 +384,14 @@ private: void get_unpinned_pawn_moves() {
 
 
 private: bool check_after_enpassant(int startPos) {
-	uint64_t newBB = (allBB & 1ULL << board.enPassant) & ~((1ULL << board.enPassantCapture) && (1ULL << startPos));
+	int enPassantC;
+	if (board.toMove == 0) {
+		enPassantC = board.enPassant - 8;
+	}
+	else {
+		enPassantC = board.enPassant + 8;
+	}
+	uint64_t newBB = (allBB & 1ULL << board.enPassant) & ~((1ULL << enPassantC) && (1ULL << startPos));
 	int kingPos = bitOp.lsb_bitscan(board.get_piece_BB((Piece)board.toMove, king));
 	int moves[4] = { 0,2,4,6 }; // diagonals
 	uint64_t diagAttackers = board.get_piece_BB(board.toNotMove, queen) | board.get_piece_BB(board.toNotMove, bishop);
