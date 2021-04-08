@@ -15,7 +15,7 @@ public: int calculate_perft_bulk(Board board, int depth, bool debug) {
 	int time1, time2;
 	time1 = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
 	string lerf;
-	for (Move move : moves) {
+	for (Move &move : moves) {
 		lerf = move.move_to_lerf();
 		if (depth == 1) {
 			movesNum = 1;
@@ -46,7 +46,7 @@ private: int calculate_moves_bulk(MoveCreator &moveGen, int depth) {
 		return moves.size();
 	}
 	int total = 0;
-	for (Move move : moves) {
+	for (Move &move : moves) {
 		moveGen.board.make_move(move);
 		total += calculate_moves_bulk(moveGen, depth - 1);
 		moveGen.board.unmake_move(move);
@@ -62,7 +62,7 @@ public: int calculate_perft(Board board, int depth, bool debug) {
 	int movesNum;
 	time_t seconds1, seconds2;
 	seconds1 = time(NULL);
-	for (Move move : moves) {
+	for (Move &move : moves) {
 		moveGen.board.make_move(move);
 		movesNum = calculate_moves(moveGen, depth - 1);
 		moveGen.board.unmake_move(move);
@@ -87,7 +87,7 @@ private: int calculate_moves(MoveCreator& moveGen, int depth) {
 	}
 	list<Move> moves = moveGen.get_all_moves();
 	int total = 0;
-	for (Move move : moves) {
+	for (Move &move : moves) {
 		moveGen.board.make_move(move);
 		total += calculate_moves(moveGen, depth - 1);
 		moveGen.board.unmake_move(move);

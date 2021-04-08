@@ -41,7 +41,7 @@ int main()
         else if (input == "isready") {
             cout << "readyok" << "\n";
         }
-        else if (input.rfind("position", 0) == 0) {
+        else if (input.rfind("position", 0) == 0) { //changed so needs fen
             string FEN;
             int movesPos = input.find("moves");
             if (input.find("startpos") != string::npos) {
