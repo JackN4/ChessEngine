@@ -71,7 +71,7 @@ int main()
         }
         else if (input == "moves debug") {
             MoveCreator moveGen = MoveCreator(board);
-            list<Move> moves = moveGen.get_all_moves();
+            vector<Move> moves = moveGen.get_all_moves();
             display.display_all_moves(moves);
         }
         else if (input == "display") {
