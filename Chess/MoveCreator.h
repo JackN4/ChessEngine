@@ -127,10 +127,14 @@ private: void get_pinned_other(Pinned pinnedP) {
 	MoveResults& moves = allMoves[pinnedP.pieceType - 2]; //not sure if correct
 	Piece pieceCaptured;
 	uint64_t movesBB = ((bbCreator.*get_BB)(pinnedP.pinnedPos, allBB, ownColourBB) & checkingBB) & pinnedP.pinBB;
-	for (int endPos : bitOp.full_bitscan(bbCreator.get_quiet(movesBB, oppColourBB))) {
-		moves.quiet.emplace_back(Move(pinnedP.pieceType, pinnedP.pinnedPos, endPos));
+	pair<int*, int> fullScan = bitOp.full_bitscan(bbCreator.get_quiet(movesBB, oppColourBB));
+	for (int i = 0; i < fullScan.second; i++) {
+		moves.quiet.emplace_back(Move(pinnedP.pieceType, pinnedP.pinnedPos, fullScan.first[i]));
 	}
-	for (int endPos : bitOp.full_bitscan(bbCreator.get_attacks(movesBB, oppColourBB))) {
+	fullScan = bitOp.full_bitscan(bbCreator.get_attacks(movesBB, oppColourBB));
+	int endPos;
+	for (int i = 0; i < fullScan.second; i++) {
+		endPos = fullScan.first[i];
 		pieceCaptured = board.get_piece_from_pos(endPos);
 		moves.capture.emplace_back(Move(pinnedP.pieceType, pinnedP.pinnedPos, endPos, pieceCaptured));
 	}
@@ -229,12 +233,17 @@ private: void get_king_moves() {
 	uint64_t allMovesBB = bbCreator.get_king_BB(pos, ownColourBB);
 	Piece pieceCaptured;
 	int castling = board.castling[board.toMove];
-	for (int endPos : bitOp.full_bitscan(bbCreator.get_quiet(allMovesBB, oppColourBB))) {
+	pair<int*, int> fullScan = bitOp.full_bitscan(bbCreator.get_quiet(allMovesBB, oppColourBB));
+	int endPos;
+	for (int i = 0; i < fullScan.second; i++) {
+		endPos = fullScan.first[i];
 		if (!square_threatened_any(endPos)) {
 			allMoves[5].quiet.emplace_back(Move(king, pos, endPos));
 		}
 	}
-	for (int endPos : bitOp.full_bitscan(bbCreator.get_attacks(allMovesBB, oppColourBB))) {
+	fullScan = bitOp.full_bitscan(bbCreator.get_attacks(allMovesBB, oppColourBB));
+	for (int i = 0; i < fullScan.second; i++) {
+		endPos = fullScan.first[i];
 		if (!square_threatened_any(endPos)) {
 			pieceCaptured = board.get_piece_from_pos(endPos);
 			allMoves[5].capture.emplace_back(Move(king, pos, endPos, pieceCaptured));
@@ -281,12 +290,19 @@ private: void get_other_piece_moves(Piece piece, function get_BB) {
 	MoveResults &moves = allMoves[piece-2]; //not sure if correct
 	uint64_t allMovesBB;
 	Piece pieceCaptured;
-	for (int pos : bitOp.full_bitscan(pieceBB)) {
+	pair<int*, int> fullScan1 = bitOp.full_bitscan(pieceBB);
+	int pos;
+	int endPos;
+	for (int i = 0; i < fullScan1.second; i++) {
+		pos = fullScan1.first[i];
 		allMovesBB = (bbCreator.*get_BB)(pos, allBB, ownColourBB) & checkingBB;
-		for (int endPos : bitOp.full_bitscan(bbCreator.get_quiet(allMovesBB, oppColourBB))) {
-			moves.quiet.emplace_back(Move(piece, pos, endPos));
+		pair<int*, int> fullScan2 = bitOp.full_bitscan(bbCreator.get_quiet(allMovesBB, oppColourBB));
+		for (int j = 0; j < fullScan2.second; j++) {
+			moves.quiet.emplace_back(Move(piece, pos, fullScan2.first[j]));
 		}
-		for (int endPos : bitOp.full_bitscan(bbCreator.get_attacks(allMovesBB, oppColourBB))) {
+		fullScan2 = bitOp.full_bitscan(bbCreator.get_attacks(allMovesBB, oppColourBB));
+		for (int j = 0; j < fullScan2.second; j++) {
+			endPos = fullScan2.first[j];
 			pieceCaptured = board.get_piece_from_pos(endPos);
 			moves.capture.emplace_back(Move(piece, pos, endPos, pieceCaptured));
 		}
@@ -311,10 +327,15 @@ private: list<Move> pawn_quietBB_to_moves(uint64_t moveBB, int diff) {//do promo
 	moveBB &= checkingBB;
 	list<Move> results;
 	pair<uint64_t, uint64_t> promos = bbCreator.get_promo_BB(moveBB);
-	for (int pos : bitOp.full_bitscan(promos.first)) {
+	pair<int*, int> fullScan = bitOp.full_bitscan(promos.first);
+	int pos;
+	for (int i = 0; i < fullScan.second; i++) {
+		pos = fullScan.first[i];
 		results.emplace_back(Move(pawn, pos + diff, pos));
 	}
-	for (int pos : bitOp.full_bitscan(promos.second)) {
+	fullScan = bitOp.full_bitscan(promos.second);
+	for (int i = 0; i < fullScan.second; i++) {
+		pos = fullScan.first[i];
 		results.splice(results.end(), get_promo_moves(pos + diff, pos));
 	}
 	return results;
@@ -324,10 +345,15 @@ private: list<Move> pawn_captureBB_to_moves(uint64_t moveBB, int diff) {//do pro
 	moveBB &= checkingBB;
 	list<Move> results;
 	pair<uint64_t, uint64_t> promos = bbCreator.get_promo_BB(moveBB);
-	for (int pos : bitOp.full_bitscan(promos.first)) {
+	pair<int*, int> fullScan = bitOp.full_bitscan(promos.first);
+	int pos;
+	for (int i = 0; i < fullScan.second; i++) {
+		pos = fullScan.first[i];
 		results.emplace_back(Move(pawn, pos + diff, pos, board.get_piece_from_pos(pos)));
 	}
-	for (int pos : bitOp.full_bitscan(promos.second)) {
+	fullScan = bitOp.full_bitscan(promos.second);
+	for (int i = 0; i < fullScan.second; i++) {
+		pos = fullScan.first[i];
 		results.splice(results.end(), get_promo_moves(pos + diff, pos, board.get_piece_from_pos(pos)));
 	}
 	return results;
@@ -335,7 +361,10 @@ private: list<Move> pawn_captureBB_to_moves(uint64_t moveBB, int diff) {//do pro
 
 private: list<Move> pawn_enPassantBB_to_moves(uint64_t moveBB, int diff) {//do promo in here
 	list<Move> results;
-	for (int pos : bitOp.full_bitscan(moveBB)) {
+	pair<int*, int> fullScan = bitOp.full_bitscan(moveBB);
+	int pos;
+	for (int i = 0; i < fullScan.second; i++) {
+		pos = fullScan.first[i];
 		int startPos = pos + diff;
 		if (!(check_after_enpassant(startPos))) {
 			results.emplace_back(Move(pawn, pos + diff, pos, pawn, 0, white, board.enPassant));

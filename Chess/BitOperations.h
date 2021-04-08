@@ -5,7 +5,7 @@
 
 #pragma intrinsic(_BitScanForward64)
 #pragma intrinsic(_BitScanReverse64)
-using std::list;
+using std::pair;
 
 struct BitOperations {
 int lsb_bitscan(uint64_t BB) {
@@ -22,16 +22,18 @@ int msb_bitscan(uint64_t BB) {
 }
 
 
-list <int> full_bitscan(uint64_t BB) {
-		int lsb;
-		list <int> result;
-		while (BB != 0) {
-			lsb = lsb_bitscan(BB);
-			result.emplace_back(lsb);
-			BB -= 1ULL << lsb;
-		}
-		return result;
+pair<int[64],  int> full_bitscan(uint64_t BB) { //array, length of array
+	pair<int[64], int> result;
+	result.second = 0;
+	int lsb;
+	while (BB != 0) {
+		lsb = lsb_bitscan(BB);
+		result.first[result.second] = lsb;
+		BB -= 1ULL << lsb;
+		result.second++;
 	}
+	return result;
+}
 
 
 int pop_count(uint64_t BB) {
