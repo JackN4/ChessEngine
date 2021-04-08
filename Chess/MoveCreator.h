@@ -1,5 +1,4 @@
 #pragma once
-#include <list>
 #include <vector>
 #include "MoveBBCreator.h"
 #include "Board.h"
@@ -291,12 +290,6 @@ private: void get_other_piece_moves(Piece piece, function get_BB) {
 private: void get_pinned_pawn(Pinned pinnedPawn) {
 	uint64_t attackerBB = (1ULL << pinnedPawn.attackerPos);
 	get_pawn_moves((1ULL << pinnedPawn.pinnedPos), pinnedPawn.pinBB ^ attackerBB, attackerBB);
-}
-
-private: list<Move> get_promo_moves(int startPos, int endPos, Piece capture = white) {
-	list<Move> results;
-	
-	return results;
 }
 
 

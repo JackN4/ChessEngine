@@ -4,9 +4,7 @@
 #include <stack>
 #include "Move.h"
 #include "BitOperations.h"
-#include <list> 
 
-using std::list;
 using std::string;
 using std::pair;
 using namespace N;
@@ -19,7 +17,6 @@ class Board
 
 public: uint64_t bitboards[8] = {0};
 //public: stack<Move> moves;
-//public: list<Pinned> pinned[2];
 	int toMove= 0;
 	int toNotMove = 0;
 	int castling[2] = { 0,0 }; //KQkq
