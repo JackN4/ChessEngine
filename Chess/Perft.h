@@ -8,7 +8,7 @@ class Perft
 {
 public: int calculate_perft_bulk(Board board, int depth, bool debug) {
 	MoveCreator moveGen = MoveCreator(board);
-	list<Move> moves = moveGen.get_all_moves();
+	vector<Move> moves = moveGen.get_all_moves();
 	BoardDisplay display;
 	int total = 0;
 	int movesNum;
@@ -41,7 +41,7 @@ public: int calculate_perft_bulk(Board board, int depth, bool debug) {
 
 
 private: int calculate_moves_bulk(MoveCreator &moveGen, int depth) {
-	list<Move> moves = moveGen.get_all_moves();
+	vector<Move> moves = moveGen.get_all_moves();
 	if (depth == 1) {
 		return moves.size();
 	}
@@ -56,7 +56,7 @@ private: int calculate_moves_bulk(MoveCreator &moveGen, int depth) {
 
 public: int calculate_perft(Board board, int depth, bool debug) {
 	MoveCreator moveGen = MoveCreator(board);
-	list<Move> moves = moveGen.get_all_moves();
+	vector<Move> moves = moveGen.get_all_moves();
 	BoardDisplay display;
 	int total = 0;
 	int movesNum;
@@ -85,7 +85,7 @@ private: int calculate_moves(MoveCreator& moveGen, int depth) {
 	if (depth == 0) {
 		return 1;
 	}
-	list<Move> moves = moveGen.get_all_moves();
+	vector<Move> moves = moveGen.get_all_moves();
 	int total = 0;
 	for (Move &move : moves) {
 		moveGen.board.make_move(move);

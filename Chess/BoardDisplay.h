@@ -5,6 +5,7 @@
 
 
 using std::cout;
+using std::vector;
 
 class BoardDisplay
 {
@@ -89,7 +90,7 @@ private: void display_move(Move move) {
 	display_board_arr(boardArr);
 }
 
-public: void display_all_moves(list<Move> allMoves) {
+public: void display_all_moves(vector<Move> allMoves) {
 	for (Move const &move : allMoves) {
 		display_move(move);
 		cout << "\n";

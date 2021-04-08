@@ -1,10 +1,11 @@
 #pragma once
 #include <list>
+#include <vector>
 #include "MoveBBCreator.h"
 #include "Board.h"
 
-using std::list;
 using std::pair;
+using std::vector;
 
 using function = uint64_t(MoveBBCreator::*)(int, uint64_t, uint64_t);
 
@@ -13,9 +14,9 @@ const uint64_t allSet = 0xffffffffffffffff;
 
 struct Pinned
 {
-public: Piece pieceType;
-public: int pinnedPos, attackerPos;
-public: uint64_t pinBB;
+Piece pieceType;
+int pinnedPos, attackerPos;
+uint64_t pinBB;
 
 	  Pinned(int pieceIn, int pinnnedIn, int attackerIn, uint64_t pinBBIn) {
 		  pieceType = (Piece)pieceIn;
@@ -25,27 +26,17 @@ public: uint64_t pinBB;
 	  }
 };
 
-/*class PinnedResults //might make struct
-{
-public:int checkers = 0;
-public:uint64_t checkingBB = 0;
-public:list<Pinned> pinned; //pos direction
-public: void add_other_result(PinnedResults results) {
-	checkingBB |= results.checkingBB;
-	pinned.splice(results.pinned.end(), results.pinned);
-	checkers += results.checkers;
-}
-};*/
+
 
 struct MoveResults {
-list<Move> quiet, capture;
+vector<Move> quiet, capture;
 };
 
 class MoveCreator {
 public: Board board;
 	BitOperations bitOp;
 	MoveBBCreator bbCreator;
-	list<Pinned> pinnedPieces;
+	vector<Pinned> pinnedPieces;
 	int checkers = 0;
 	uint64_t checkingBB = 0;
 	MoveResults allMoves[6];
@@ -76,7 +67,7 @@ private: void setup() {
 	setup_check_pinned(board.toMove);
 }
 
-public: list<Move> get_all_moves() {
+public: vector<Move> get_all_moves() {
 	setup();
 	if(checkers == 2){
 		get_king_moves();
@@ -85,10 +76,10 @@ public: list<Move> get_all_moves() {
 		get_pinned_moves();
 		get_non_pinned_moves();
 	}
-	list<Move> allMovesFinal;
+	vector<Move> allMovesFinal;
 	for (int i = 0; i < 6; i++) { //order moves
-		allMovesFinal.splice(allMovesFinal.end(), allMoves[i].quiet);
-		allMovesFinal.splice(allMovesFinal.end(), allMoves[i].capture);
+		allMovesFinal.insert(allMovesFinal.end(), allMoves[i].quiet.begin(), allMoves[i].quiet.end());
+		allMovesFinal.insert(allMovesFinal.end(), allMoves[i].capture.begin(), allMoves[i].capture.end());
 	}
 	return allMovesFinal;
 }
@@ -248,7 +239,7 @@ private: void get_king_moves() {
 			allMoves[5].capture.emplace_back(Move(king, pos, endPos, pieceCaptured));
 		}
 	}
-	if (checkers == 0) {
+	if (checkers = 0) {
 		if (can_queenside_castle(castling)) { //queenside
 			allMoves[5].quiet.emplace_back(Move(king, pos, pos - 2, white, 1));
 		}
