@@ -10,7 +10,7 @@ using std::string;
 
 struct Move
 {
-int startPos, endPos, castling, castlingBefore, enPassantBefore;
+int startPos, endPos, castling, castlingBefore[2], enPassantBefore;
 Piece pieceType, pieceCapture, promoPiece;
 //public: list<Pinned> addPinned[2], removedPinned[2];
 bool enPassant;
@@ -19,7 +19,6 @@ public: Move(Piece pieceIn, int startPosin, int endPosIn, Piece pieceCIn=white, 
 	pieceType = pieceIn;
 	pieceCapture = (Piece)pieceCIn;
 	castling = castlingIn; //kq does it castle
-	castlingBefore = 0; //castling rights before move
 	promoPiece = (Piece)promoPieceIn;
 	startPos = startPosin;
 	endPos = endPosIn;

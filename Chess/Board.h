@@ -23,7 +23,8 @@ public: uint64_t bitboards[8] = {0};
 	int enPassant;
 
 	private: void check_for_castle(Move &move) {
-		move.castlingBefore = castling[toMove];
+		move.castlingBefore[0] = castling[0];
+		move.castlingBefore[1] = castling[1];
 		if (move.pieceType == king) {
 			castling[toMove] = 0;
 			if (move.castling != 0) {
@@ -42,6 +43,14 @@ public: uint64_t bitboards[8] = {0};
 			}
 			if (move.startPos == 7 + 56 * toMove) {
 				castling[toMove] &= ~(1UL<<1);
+			}
+		}
+		if (move.pieceCapture == rook) {
+			if (move.endPos == 0 + 56 * toNotMove) {
+				castling[toNotMove] &= ~(1UL);
+			}
+			if (move.endPos == 7 + 56 * toNotMove) {
+				castling[toNotMove] &= ~(1UL << 1);
 			}
 		}
 	}
@@ -110,7 +119,8 @@ public: void unmake_move(Move& move) {
 	}
 
 private: void unmake_castling(Move& move) {
-	castling[toMove] = move.castlingBefore;
+	castling[0] = move.castlingBefore[0];
+	castling[1] = move.castlingBefore[1];
 	if (move.castling != 0) {
 		int row = 56 * toMove;
 		if (move.castling == 1) {
@@ -251,25 +261,27 @@ public:
 					}
 				}
 				else if (section == 2) {//castling
-					char pos;
-					int colour;
-					switch (isupper(consd)) {
-					case true:
-						colour = 0;
-						break;
-					case false:
-						colour = 1;
-						break;
-					}
-					switch (tolower(consd)) {
+					if (consd != '-') {
+						char pos;
+						int colour;
+						switch (isupper(consd)) {
+						case true:
+							colour = 0;
+							break;
+						case false:
+							colour = 1;
+							break;
+						}
+						switch (tolower(consd)) {
 						case 'k':
 							pos = 1;
 							break;
 						case 'q':
 							pos = 0;
 							break;
+						}
+						castling[colour] |= 1UL << pos;
 					}
-					castling[colour] |= 1UL << pos;
 				}
 				else if (section == 3) {//enPassant
 					string enPassantStr = fen.substr(i, 2);
