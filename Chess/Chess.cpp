@@ -47,12 +47,12 @@ int main()
             if (input.find("startpos") != string::npos) {
                 FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
             }
-            else {
-                if (movesPos != string::npos) {
-                    FEN = input.substr(9);
+            else if (input.find("fen") != string::npos) {
+                if (movesPos == string::npos) {
+                    FEN = input.substr(13);
                 }
                 else {
-                    FEN = input.substr(9, movesPos - 11);
+                    FEN = input.substr(13, movesPos - 14);
                 }
             }
             board.create_from_FEN(FEN);
@@ -84,6 +84,11 @@ int main()
             int depth = stoi(depthStr);
             perft.calculate_perft(board, depth, debug);
         }
+        else if (input.rfind("perftFile", 0) == 0) {
+            Perft perft;
+            string fileName = input.substr(10);
+            perft.perft_file(fileName);
+        }
         else if (input.rfind("perft", 0) == 0) {
             Perft perft;
             string depthStr = input.substr(6);
@@ -101,6 +106,10 @@ int main()
                 debug = true;
             }
         }
+        else {
+            cout << "that command is not recognised\n";
+        }
+
     }
 }
 
