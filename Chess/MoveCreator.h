@@ -89,7 +89,7 @@ private: void get_pinned_moves() {
 
 
 
-private: void get_pinned_other(Pinned pinnedP) {
+private: void get_pinned_other(Pinned &pinnedP) {
 	function get_BB = &MoveBBCreator::get_knight_BB; // just placeholder value
 	switch (pinnedP.pieceType) {
 	case knight:
@@ -100,6 +100,7 @@ private: void get_pinned_other(Pinned pinnedP) {
 		break;
 	case rook:
 		get_BB = &MoveBBCreator::get_rook_BB;
+		break;
 	case queen:
 		get_BB = &MoveBBCreator::get_queen_BB;
 		break;
@@ -152,14 +153,14 @@ private: void setup_check_pinned(int colour) { //return attacking rays, return r
 }
 
 //can be improved, made branchless
-private: void get_all_attackers_pinned(int* moves, uint64_t attackers, int pos, int colour) {//returns a bitboard of rays attacking king and list of pinned pieces and direction they are pinned
+private: void get_all_attackers_pinned(int* moves, uint64_t attackers, int kingPos, int colour) {//returns a bitboard of rays attacking king and list of pinned pieces and direction they are pinned
 	uint64_t blockersBB;
 	uint64_t rayBB;
 	uint64_t pinnedBB;
 	int blockerPos;
 	int blockerPos2;
 	for (int i = 0; i < 4; i++) {
-		rayBB = bbCreator.lookup.slideMoves[pos][moves[i]];
+		rayBB = bbCreator.lookup.slideMoves[kingPos][moves[i]];
 		blockersBB = rayBB & allBB;
 		if (blockersBB != 0) {
 			blockerPos = bbCreator.get_blocker_pos(blockersBB, moves[i]);
@@ -168,8 +169,8 @@ private: void get_all_attackers_pinned(int* moves, uint64_t attackers, int pos, 
 				if (blockersBB != 0) {
 					blockerPos2 = bbCreator.get_blocker_pos(blockersBB, moves[i]);
 					if (((1ULL << blockerPos2) & attackers) != 0) {
-						pinnedBB = bbCreator.lookup.slideMoves[blockerPos][moves[i]] ^ bbCreator.lookup.slideMoves[blockerPos2][moves[i]];
-						pinnedPieces.emplace_back(Pinned(board.get_piece_from_pos(blockerPos), blockerPos, blockerPos2, rayBB));
+						pinnedBB = (bbCreator.lookup.slideMoves[blockerPos2][moves[i]] ^ bbCreator.lookup.slideMoves[kingPos][moves[i]]) ; //line can be done better using the direction value to get the pos for the ray to xor
+						pinnedPieces.emplace_back(Pinned(board.get_piece_from_pos(blockerPos), blockerPos, blockerPos2, pinnedBB));
 					}
 				}
 			}
@@ -185,6 +186,9 @@ private: bool square_threatened_any(int pos) {
 	Piece oppColour = (Piece)(board.toMove ^ 1);
 	uint64_t allBBNoKing = allBB & ~board.get_piece_BB(board.toMove, king);
 	if ((bbCreator.get_knight_BB_empty(pos) & board.get_piece_BB(oppColour, knight)) != 0) { //knight attacks
+		return true;
+	}
+	if ((bbCreator.get_king_BB(pos, 0) & board.get_piece_BB(oppColour, king)) != 0) {
 		return true;
 	}
 	int moves[4] = { 0,2,4,6 }; // diagonals
@@ -243,7 +247,7 @@ private: void get_king_moves() {
 private: bool can_queenside_castle(int castling) {
 	int rowPos = 56 * board.toMove;
 	if ((castling & 1UL) == 1){
-		if (bbCreator.sqr_empty(allBB, rowPos + 2) && bbCreator.sqr_empty(allBB, rowPos + 3)) {
+		if (bbCreator.sqr_empty(allBB, rowPos + 1) && bbCreator.sqr_empty(allBB, rowPos + 2) && bbCreator.sqr_empty(allBB, rowPos + 3)) {
 			if (!square_threatened_any(rowPos + 2) && !square_threatened_any(rowPos + 3)) {
 				return true;
 			}
