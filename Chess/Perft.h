@@ -8,11 +8,11 @@ using namespace std::chrono;
 
 class Perft
 {
-public: uint32_t calculate_perft_bulk(Board board, int depth, bool debug, bool print = true) {
+public: uint64_t calculate_perft_bulk(Board board, int depth, bool debug, bool print = true) {
 	MoveCreator moveGen = MoveCreator(board);
 	vector<Move> moves = moveGen.get_all_moves();
 	BoardDisplay display;
-	uint32_t total = 0;
+	uint64_t total = 0;
 	int movesNum;
 	int time1, time2;
 	time1 = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
@@ -46,12 +46,12 @@ public: uint32_t calculate_perft_bulk(Board board, int depth, bool debug, bool p
 }
 
 
-private: uint32_t calculate_moves_bulk(MoveCreator &moveGen, int depth) {
+private: uint64_t calculate_moves_bulk(MoveCreator &moveGen, int depth) {
 	vector<Move> moves = moveGen.get_all_moves();
 	if (depth == 1) {
 		return moves.size();
 	}
-	uint32_t total = 0;
+	uint64_t total = 0;
 	for (Move &move : moves) {
 		moveGen.board.make_move(move);
 		total += calculate_moves_bulk(moveGen, depth - 1);
@@ -60,14 +60,14 @@ private: uint32_t calculate_moves_bulk(MoveCreator &moveGen, int depth) {
 	return total;
 }
 
-public: uint32_t calculate_perft(Board board, int depth, bool debug) {
+public: uint64_t calculate_perft(Board board, int depth, bool debug) {
 	MoveCreator moveGen = MoveCreator(board);
 	vector<Move> moves = moveGen.get_all_moves();
 	BoardDisplay display;
-	uint32_t total = 0;
+	uint64_t total = 0;
 	int movesNum;
-	time_t seconds1, seconds2;
-	seconds1 = time(NULL);
+	int time1, time2;
+	time1 = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
 	for (Move &move : moves) {
 		moveGen.board.make_move(move);
 		movesNum = calculate_moves(moveGen, depth - 1);
@@ -78,8 +78,8 @@ public: uint32_t calculate_perft(Board board, int depth, bool debug) {
 			display.display_board(board);
 		}
 	}
-	seconds2 = time(NULL);
-	float secondsTotal = seconds2 - seconds1;
+	time2 = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
+	float secondsTotal = ((float)(time2 - time1)) / 1000;
 	float nodesSecond = total / secondsTotal;
 	cout << "total: " << total << "\n";
 	cout << "nodes per sceond: " << nodesSecond << "\n";
@@ -87,12 +87,12 @@ public: uint32_t calculate_perft(Board board, int depth, bool debug) {
 }
 
 
-private: uint32_t calculate_moves(MoveCreator& moveGen, int depth) {
+private: uint64_t calculate_moves(MoveCreator& moveGen, int depth) {
 	if (depth == 0) {
 		return 1;
 	}
 	vector<Move> moves = moveGen.get_all_moves();
-	uint32_t total = 0;
+	uint64_t total = 0;
 	for (Move &move : moves) {
 		moveGen.board.make_move(move);
 		total += calculate_moves(moveGen, depth - 1);
