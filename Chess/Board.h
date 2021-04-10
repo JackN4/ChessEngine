@@ -153,7 +153,7 @@ private: Move get_move_notation(string moveStr) { //assume move is legal
 			return Move(pawn, startPos, endPos, pawn, 0, white, enPassant);
 		}
 		else if ((endPos >> 3) == 0 || (endPos >> 3) == 7) {
-			char promo = moveStr.at(5);
+			char promo = moveStr.at(4);
 			Piece promoPiece = letter_to_piece(promo).second;
 			return Move(pawn, startPos, endPos, captured, 0, promoPiece, 0);
 		}
@@ -284,12 +284,15 @@ public:
 					}
 				}
 				else if (section == 3) {//enPassant
-					string enPassantStr = fen.substr(i, 2);
-					if (enPassantStr[0] >= 'a' && enPassantStr[0] <= 'h' && enPassantStr[1] > '0' && enPassantStr[1] < '9') {
-						enPassant = LERF_to_sqr(fen.substr(i, 2));
+					if (consd != '-') {
+						string enPassantStr = fen.substr(i, 2);
+						if (enPassantStr[0] >= 'a' && enPassantStr[0] <= 'h' && enPassantStr[1] > '0' && enPassantStr[1] < '9') {
+							enPassant = LERF_to_sqr(fen.substr(i, 2));
+						}
 					}
 					else {
 						enPassant = 0;
+						section += 1;//might need to remove for half move draw considerations
 					}
 				}
 				i++;
