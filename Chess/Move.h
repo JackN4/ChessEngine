@@ -29,6 +29,22 @@ public: string move_to_lerf() {
 	string result;
 	result += sqr_to_lerf(startPos);
 	result += sqr_to_lerf(endPos);
+	switch (promoPiece) { //don't like this way but it works and doesnt need to be fast
+	case white:
+		break;
+	case knight:
+		result += 'n';
+		break;
+	case bishop:
+		result += 'b';
+		break;
+	case rook:
+		result += 'r';
+		break;
+	case queen:
+		result += 'q';
+		break;
+	}
 	return result;
 }
 
