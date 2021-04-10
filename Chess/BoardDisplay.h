@@ -15,7 +15,7 @@ private: void display_BB(uint64_t BB) {
 	int pos;
 	int sqr;
 	for (int rank = 7; rank >= 0; rank--) {
-		for (int file = 0; file >= 7; file++) {
+		for (int file = 0; file <= 7; file++) {
 			pos = rank * 8 + file;
 			sqr = (BB >> pos) & 1U;
 			cout << sqr;
