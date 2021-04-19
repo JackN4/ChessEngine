@@ -8,6 +8,7 @@
 #include "Lookups.h"
 #include "MoveCreator.h"
 #include "Perft.h"
+#include "Evaluator.h"
 
 using namespace N;
 using namespace std;
@@ -75,7 +76,7 @@ int main()
             display.display_all_moves(moves);
         }
         else if (input == "display") {
-             display.display_board(board);
+            display.display_board(board);
         }
         else if (input.rfind("perftNB", 0) == 0) {
             Perft perft;
@@ -105,6 +106,11 @@ int main()
                 cout << "debug mode is now on\n";
                 debug = true;
             }
+        }
+        else if (input == "eval") {
+            Evaluator evaluator = Evaluator(board);
+            int score = evaluator.eval();
+            cout << "eval: " << score << "\n";
         }
         else {
             cout << "that command is not recognised\n";
