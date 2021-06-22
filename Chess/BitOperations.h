@@ -1,12 +1,11 @@
 #pragma once
 #include <bitset>
-#include <vector>
+#include <list> 
 #include <intrin.h>
 
 #pragma intrinsic(_BitScanForward64)
 #pragma intrinsic(_BitScanReverse64)
 using std::pair;
-using std::vector;
 
 struct BitOperations {
 int lsb_bitscan(uint64_t BB) {
@@ -23,13 +22,15 @@ int msb_bitscan(uint64_t BB) {
 }
 
 
-vector<int> full_bitscan(uint64_t BB) { //array, length of array
-	vector<int> result;
+pair<int[64],  int> full_bitscan(uint64_t BB) { //array, length of array
+	pair<int[64], int> result;
+	result.second = 0;
 	int lsb;
 	while (BB != 0) {
 		lsb = lsb_bitscan(BB);
-		result.push_back(lsb);
+		result.first[result.second] = lsb;
 		BB -= 1ULL << lsb;
+		result.second++;
 	}
 	return result;
 }

@@ -65,13 +65,13 @@ private: void display_board_arr(char* boardArr) {
 public: void display_board(Board board) {
 	char boardArr[64] = { 0 };
 	for (int i = 2; i < 8; i++) {
-		vector<int> fullScan = bitOp.full_bitscan(board.bitboards[0] & board.bitboards[i]);
-		for (int& pos : fullScan) {
-			boardArr[pos] = pieceLetter[i - 2] ^ ' '; // capitalise
+		pair<int*, int> fullScan = bitOp.full_bitscan(board.bitboards[0] & board.bitboards[i]);
+		for (int j = 0; j < fullScan.second; j++) {
+			boardArr[fullScan.first[j]] = pieceLetter[i - 2] ^ ' '; // capitalise
 		}
 		fullScan = bitOp.full_bitscan(board.bitboards[1] & board.bitboards[i]);
-		for (int& pos : fullScan) {
-			boardArr[pos] = pieceLetter[i - 2];
+		for (int j = 0; j < fullScan.second; j++) {
+			boardArr[fullScan.first[j]] = pieceLetter[i - 2];
 		}
 	}
 	display_board_arr(boardArr);
