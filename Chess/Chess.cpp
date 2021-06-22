@@ -9,7 +9,6 @@
 #include "MoveCreator.h"
 #include "Perft.h"
 #include "Evaluator.h"
-#include "Search.h"
 
 using namespace N;
 using namespace std;
@@ -109,18 +108,14 @@ int main()
             }
         }
         else if (input == "eval") {
-            Evaluator evaluator;
-            int score = evaluator.eval(board);
+            Evaluator evaluator = Evaluator(board);
+            int score = evaluator.eval();
             cout << "eval: " << score << "\n";
-        }
-        else if (input.rfind("go", 0) == 0) {
-            Search search;
-            Move bestMove = search.negamax_start(board);
-            cout << "bestmove " << bestMove.move_to_lerf() << "\n";
         }
         else {
             cout << "that command is not recognised\n";
         }
+
     }
 }
 
