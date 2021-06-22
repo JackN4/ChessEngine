@@ -25,6 +25,8 @@ public: Move(Piece pieceIn, int startPosin, int endPosIn, Piece pieceCIn=white, 
 	enPassant = enPassantIn;//the piece that is remove
 }
 
+public: Move() {}
+
 public: string move_to_lerf() {
 	string result;
 	result += sqr_to_lerf(startPos);

@@ -40,7 +40,7 @@ public: Board board;
 	uint64_t ownColourBB = 0, oppColourBB = 0, allBB = 0;
 
 
-public: MoveCreator(Board &boardIn) {
+public: MoveCreator(Board boardIn) {
 	board = boardIn;
 }
 
