@@ -70,9 +70,68 @@ public: vector<Move> get_all_moves() {
 		get_pinned_moves();
 		get_non_pinned_moves();
 	}
-	quiet.insert(quiet.begin(), capture.begin(), capture.end());
+	vector<Move> winning, equal, losing;
+	for (Move& move : capture) {
+		if (move.pieceType < move.pieceCapture) {
+			winning.push_back(move);
+		}
+		else if (move.pieceType == move.pieceCapture){
+			equal.push_back(move);
+		}
+		else {
+			losing.push_back(move);
+		}
+	}
+	quiet.insert(quiet.begin(), losing.begin(), losing.end());
+	quiet.insert(quiet.begin(), equal.begin(), equal.end());
+	quiet.insert(quiet.begin(), winning.begin(), winning.end());
 	return quiet;
 }
+
+/*private: bool capture_winning(Move& move) {
+	if (move.pieceType >= move.pieceCapture) {
+		return true;
+	}
+	else {
+		int value = 0;
+		pair<Piece, int> attacker = get_smallest_attacker(move.startPos, board.toMove);
+	}
+
+}
+
+private: pair<Piece, int> get_smallest_attacker(int pos, int colour) {
+	Piece oppColour = (Piece)(board.toMove ^ 1);
+	uint64_t allBBNoPos = allBB & ~ 1ULL << pos;
+	uint64_t pawnAttackers = bbCreator.get_king_pawn_attack_BB(pos, board.toMove) & board.get_piece_BB(oppColour, pawn);
+	if (pawnAttackers != 0) { // pawn attacks
+		return make_pair(pawn, bitOp.lsb_bitscan(pawnAttackers));
+	}
+	uint64_t knightAttackers = bbCreator.get_knight_BB_empty(pos) & board.get_piece_BB(oppColour, knight);
+	if (knightAttackers != 0) { //knight attacks
+		return make_pair(knight, bitOp.lsb_bitscan(knightAttackers));
+	}
+	int bishopAttacker = bbCreator.attacker_pos(new int[4] { 0,2,4,6 }, board.get_piece_BB(oppColour, bishop), pos, allBBNoPos);
+	if (bishopAttacker < 64) {
+		return make_pair(bishop, bitOp.lsb_bitscan(bishopAttacker));
+	}
+	int rookAttacker = bbCreator.attacker_pos(new int[4]{ 1,3,5,7 }, board.get_piece_BB(oppColour, rook), pos, allBBNoPos);
+	if (bishopAttacker < 64) {
+		return make_pair(rook, bitOp.lsb_bitscan(rookAttacker));
+	}
+	int queenAttacker = bbCreator.attacker_pos(new int[8]{ 0,1,2,3,4,5,6,7 }, board.get_piece_BB(oppColour, queen), pos, allBBNoPos);
+	if (bishopAttacker < 64) {
+		return make_pair(queen, bitOp.lsb_bitscan(queenAttacker));
+	}
+	uint64_t kingAttacker = bbCreator.get_king_BB(pos, 0) & board.get_piece_BB(oppColour, king);
+	if (kingAttacker != 0) {
+		return make_pair(king, bitOp.lsb_bitscan(kingAttacker));
+	}
+	return make_pair(white, 0);
+	
+	return false;
+}*/
+
+
 
 
 private: void get_pinned_moves() {

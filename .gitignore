@@ -367,3 +367,6 @@ Notes.txt
 Text.txt
 Chess.vcxproj
 Chess.vcxproj.filter
+/CppProperties.json
+/Chess/perft1.txt
+/Chess/notes3.txt

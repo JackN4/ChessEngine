@@ -86,11 +86,18 @@ int main()
             int depth = stoi(depthStr);
             perft.calculate_perft(board, depth, debug);
         }
-        else if (input.rfind("perftFile", 0) == 0) {
+        else if (input.rfind("perftTT", 0) == 0) {
+            Perft perft;
+            string depthStr = input.substr(8);
+            depthStr.erase(remove_if(depthStr.begin(), depthStr.end(), isspace), depthStr.end());
+            int depth = stoi(depthStr);
+            perft.calculate_perft_TT(board, depth, debug);
+        }
+        /*else if (input.rfind("perftFile", 0) == 0) {
             Perft perft;
             string fileName = input.substr(10);
             perft.perft_file(fileName);
-        }
+        }*/
         else if (input.rfind("perft", 0) == 0) {
             Perft perft;
             string depthStr = input.substr(6);
@@ -117,6 +124,9 @@ int main()
             Search search;
             Move bestMove = search.negamax_start(board);
             cout << "bestmove " << bestMove.move_to_lerf() << "\n";
+        }
+        else if (input == "zobrist") {
+            cout << (board.zobristKey) << "\n";
         }
         else {
             cout << "that command is not recognised\n";

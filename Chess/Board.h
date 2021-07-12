@@ -4,6 +4,7 @@
 #include <stack>
 #include "Move.h"
 #include "BitOperations.h"
+#include "Zobrist.h"
 
 using std::string;
 using std::pair;
@@ -20,44 +21,115 @@ public: uint64_t bitboards[8] = {0};
 	int toMove= 0;
 	int toNotMove = 0;
 	int castling[2] = { 0,0 }; //KQkq
+public: uint64_t zobristKey = 0;
+	Zobrist zobrist = Zobrist();
 	int enPassant;
 
-	private: void check_for_castle(Move &move) {
+
+	private: void change_zobrist_piece(int colour, Piece piece, int sqr) {
+		zobristKey ^= zobrist.pieces[colour][piece - 2][sqr];
+	}
+
+	private: void change_zobrist_castle(int colour, int side) {
+		zobristKey ^= zobrist.castling[colour][side];
+	}
+
+	private: void change_zobrist_multiple_castle(int colour, int changes) { //colour to change and bits to change (01, 10, 11)
+		int lsb;
+		if (changes & 1) { // odd
+			zobristKey ^= zobrist.castling[colour][0];
+		}
+		if (changes & 2) {
+			zobristKey ^= zobrist.castling[colour][1];
+		}
+	}
+
+	private: void change_zobrist_enPassant(int sqr) {
+		if (sqr != 0) {
+			zobristKey ^= zobrist.enPassant[sqr % 8];
+		}
+	}
+
+	/*private: void check_for_castle(Move &move) {
 		move.castlingBefore[0] = castling[0];
 		move.castlingBefore[1] = castling[1];
 		if (move.pieceType == king) {
+			change_zobrist_multiple_castle(toMove, castling[toMove]);
 			castling[toMove] = 0;
 			if (move.castling != 0) {
 				int row = 56 * toMove;
-				if (move.castling == 1) {
+				if (move.castling == 1) { //queenside
 					move_piece(rook, 0 + row, 3 + row, toMove);
 				}
-				else {
+				else { //kingside
 					move_piece(rook, 7 + row, 5 + row, toMove);
 				}
 			}
 		}
-		else if (move.pieceType == rook) {
-			if (move.startPos == 0 + 56 * toMove) {
+		else if (move.pieceType == rook) { // rook move
+			if (move.startPos == 0 + 56 * toMove) { //queenside
 				castling[toMove] &= ~(1UL);
+				change_zobrist_castle(toMove, 0);
 			}
-			if (move.startPos == 7 + 56 * toMove) {
+			if (move.startPos == 7 + 56 * toMove) { //kingside
 				castling[toMove] &= ~(1UL<<1);
+				change_zobrist_castle(toMove, 1);
 			}
 		}
-		if (move.pieceCapture == rook) {
-			if (move.endPos == 0 + 56 * toNotMove) {
+		if (move.pieceCapture == rook) { //rook capture
+			if (move.endPos == 0 + 56 * toNotMove) { //queenside
 				castling[toNotMove] &= ~(1UL);
+				change_zobrist_castle(toNotMove, 0);
 			}
-			if (move.endPos == 7 + 56 * toNotMove) {
+			if (move.endPos == 7 + 56 * toNotMove) { //kingside
 				castling[toNotMove] &= ~(1UL << 1);
+				change_zobrist_castle(toNotMove, 1);
+			}
+		}
+	}*/
+
+private: void check_for_castle(Move& move) {
+	int castlingRemove[2] = { 0,0 };
+	move.castlingBefore[0] = castling[0];
+	move.castlingBefore[1] = castling[1];
+	if (move.pieceType == king) {
+		castlingRemove[toMove] = 3;
+		if (move.castling != 0) {
+			int row = 56 * toMove;
+			if (move.castling == 1) { //queenside
+				move_piece(rook, 0 + row, 3 + row, toMove);
+			}
+			else { //kingside
+				move_piece(rook, 7 + row, 5 + row, toMove);
 			}
 		}
 	}
+	else if (move.pieceType == rook) { // rook move
+		if (move.startPos == 0 + 56 * toMove) { //queenside
+			castlingRemove[toMove] |= 1U;
+		}
+		if (move.startPos == 7 + 56 * toMove) { //kingside
+			castlingRemove[toMove] |= 1U << 1;
+		}
+	}
+	if (move.pieceCapture == rook) { //rook capture
+		if (move.endPos == 0 + 56 * toNotMove) { //queenside
+			castlingRemove[toNotMove] |= 1U;
+		}
+		if (move.endPos == 7 + 56 * toNotMove) { //kingside
+			castlingRemove[toNotMove] |= 1U << 1;
+		}
+	}
+	change_zobrist_multiple_castle(0, castling[0] & castlingRemove[0]);
+	change_zobrist_multiple_castle(1, castling[1] & castlingRemove[1]);
+	castling[0] &= ~(castlingRemove[0]);
+	castling[1] &= ~(castlingRemove[1]);
+}
 
 	private: void change_turn() {
 		toNotMove = toMove;
 		toMove ^= 1;
+		zobristKey ^= zobrist.turn;
 	}
 
 	private: void check_for_en_passant(Move &move) {
@@ -69,22 +141,26 @@ public: uint64_t bitboards[8] = {0};
 			else {
 				remove_piece(pawn, enPassant + 8, toNotMove);
 			}
+			change_zobrist_enPassant(enPassant);
 			enPassant = 0;
 			return;
 		}
 		else if (move.pieceType == pawn && abs(move.startPos - move.endPos) == 16) {
-			enPassant = move.endPos + (move.startPos - move.endPos )/2;
+			int sqr = move.endPos + (move.startPos - move.endPos) / 2;
+			change_zobrist_enPassant(enPassant);
+			enPassant = sqr;
+			change_zobrist_enPassant(enPassant);
 		}
-		else{
+		else {
+			change_zobrist_enPassant(enPassant);
 			enPassant = 0;
 		}
-		
 	}
 
 	public : void make_move(Move &move) {
 		check_for_castle(move);
 		check_for_en_passant(move);
-		if (move.pieceCapture != 0) {
+		if (move.pieceCapture != 0 && !(move.enPassant)) {
 			remove_piece(move.pieceCapture, move.endPos, toNotMove);
 		}
 		if (move.promoPiece == 0) {
@@ -116,9 +192,25 @@ public: void unmake_move(Move& move) {
 	if (move.pieceCapture != 0 && !(move.enPassant)) {
 		add_piece(move.pieceCapture, move.endPos, toNotMove);
 	}
+}
+
+private: void unmake_enPassant(Move& move) {
+	change_zobrist_enPassant(enPassant);
+	change_zobrist_enPassant(move.enPassantBefore);
+	enPassant = move.enPassantBefore;
+	if (move.enPassant) {
+		if (toMove == 0) {
+			add_piece(pawn, move.endPos - 8, toNotMove);
+		}
+		else {
+			add_piece(pawn, move.endPos + 8, toNotMove);
+		}
 	}
+}
 
 private: void unmake_castling(Move& move) {
+	change_zobrist_multiple_castle(0, castling[0] ^ move.castlingBefore[0]);
+	change_zobrist_multiple_castle(1, castling[1] ^ move.castlingBefore[1]);
 	castling[0] = move.castlingBefore[0];
 	castling[1] = move.castlingBefore[1];
 	if (move.castling != 0) {
@@ -181,26 +273,17 @@ public: Piece get_piece_from_pos(int pos) {
 	}
 }
 
-private: void unmake_enPassant(Move& move) {
-	enPassant = move.enPassantBefore;
-	if (move.enPassant) {
-		if (toMove == 0) {
-			add_piece(pawn, move.endPos - 8, toNotMove);
-		}
-		else {
-			add_piece(pawn, move.endPos + 8, toNotMove);
-		}
-	}
-}
 
 private: void remove_piece(Piece piece, int pos, int colour) {
 	bitboards[colour] &= ~(1ULL << pos);
 	bitboards[piece] &= ~(1ULL << pos);
+	change_zobrist_piece(colour, piece, pos);
 	}
 
 private: void add_piece(Piece piece, int pos, int colour) {
 	bitboards[colour] |= 1ULL << pos;
 	bitboards[piece] |= 1ULL << pos;
+	change_zobrist_piece(colour, piece, pos);
 }
 
 
@@ -210,10 +293,10 @@ private: void add_piece(Piece piece, int pos, int colour) {
 			return bitboards[colour] & bitboards[piece];
 		}
 
-public:
-	uint64_t get_piece_BB(int colour, Piece piece) {
-		return get_piece_BB((Piece)colour, piece);
-	}
+	public:
+		uint64_t get_piece_BB(int colour, Piece piece) {
+			return get_piece_BB((Piece)colour, piece);
+		}
 
 	public:
 		uint64_t get_all_BB() {
@@ -222,6 +305,7 @@ public:
 
 	public:
 		void create_from_FEN(string fen) {
+			zobristKey = 0;
 			//fill boards in from FEN
 			for (int i = 0; i < 8; i++) {//sets all boards to 0
 				bitboards[i] = 0;
@@ -245,6 +329,7 @@ public:
 						pair<Piece, Piece> pieceInfo = letter_to_piece(consd);
 						bitboards[pieceInfo.first] |= (1ULL << sqr);
 						bitboards[pieceInfo.second] |= (1ULL << sqr);
+						change_zobrist_piece(pieceInfo.first, pieceInfo.second, sqr);
 						sqr += 1;
 					}
 				}
@@ -257,6 +342,7 @@ public:
 						case 'b':
 							toMove = black;
 							toNotMove = white;
+							zobristKey ^= zobrist.turn;
 							break;
 					}
 				}
@@ -281,14 +367,18 @@ public:
 							break;
 						}
 						castling[colour] |= 1UL << pos;
+						change_zobrist_castle(colour, pos);
 					}
 				}
 				else if (section == 3) {//enPassant
 					if (consd != '-') {
 						string enPassantStr = fen.substr(i, 2);
 						if (enPassantStr[0] >= 'a' && enPassantStr[0] <= 'h' && enPassantStr[1] > '0' && enPassantStr[1] < '9') {
-							enPassant = LERF_to_sqr(fen.substr(i, 2));
+							int sqr = LERF_to_sqr(fen.substr(i, 2));
+							enPassant = sqr;
+							change_zobrist_enPassant(sqr);
 						}
+
 					}
 					else {
 						enPassant = 0;
@@ -298,6 +388,7 @@ public:
 				i++;
 			}
 		}
+
 	private:
 		pair<Piece, Piece> letter_to_piece(char letter) {
 			pair<Piece, Piece> pieceInfo;

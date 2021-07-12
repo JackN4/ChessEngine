@@ -159,6 +159,22 @@ bool any_attackers(int* moves, uint64_t attackers, int pos, uint64_t allBB) {
 	return false;
 }
 
+/*int attacker_pos(int* moves, uint64_t attackers, int pos, uint64_t allBB) {
+	uint64_t blockersBB, attackers1;
+	int blockerPos;
+	for (int i = 0; i < 4; i++) {
+		blockersBB = lookup.slideMoves[pos][moves[i]] & allBB;
+		if (blockersBB != 0) {
+			blockerPos = get_blocker_pos(blockersBB, moves[i]);
+			attackers1 = (1ULL << blockerPos) & attackers;
+			if (attackers1 != 0) {
+				return bitOp.lsb_bitscan(attackers1);
+			}
+		}
+	}
+	return 100; //no attackers found
+}*/
+
 
 };
 
