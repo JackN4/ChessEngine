@@ -199,7 +199,7 @@ private: uint64_t calculate_moves_TT(MoveCreator& moveGen, int depth, PerftTable
 			moveGen.board.unmake_move(move);
 		}
 	}
-	table.add(Entry(moveGen.board.zobristKey, total, depth)); // dont need to do this if found
+	table.add(EntryPerft(moveGen.board.zobristKey, total, depth)); // dont need to do this if found
 	return total;
 }
 };

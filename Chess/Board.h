@@ -5,6 +5,7 @@
 #include "Move.h"
 #include "BitOperations.h"
 #include "Zobrist.h"
+#include "SearchTable.h"
 
 using std::string;
 using std::pair;
@@ -50,43 +51,6 @@ public: uint64_t zobristKey = 0;
 		}
 	}
 
-	/*private: void check_for_castle(Move &move) {
-		move.castlingBefore[0] = castling[0];
-		move.castlingBefore[1] = castling[1];
-		if (move.pieceType == king) {
-			change_zobrist_multiple_castle(toMove, castling[toMove]);
-			castling[toMove] = 0;
-			if (move.castling != 0) {
-				int row = 56 * toMove;
-				if (move.castling == 1) { //queenside
-					move_piece(rook, 0 + row, 3 + row, toMove);
-				}
-				else { //kingside
-					move_piece(rook, 7 + row, 5 + row, toMove);
-				}
-			}
-		}
-		else if (move.pieceType == rook) { // rook move
-			if (move.startPos == 0 + 56 * toMove) { //queenside
-				castling[toMove] &= ~(1UL);
-				change_zobrist_castle(toMove, 0);
-			}
-			if (move.startPos == 7 + 56 * toMove) { //kingside
-				castling[toMove] &= ~(1UL<<1);
-				change_zobrist_castle(toMove, 1);
-			}
-		}
-		if (move.pieceCapture == rook) { //rook capture
-			if (move.endPos == 0 + 56 * toNotMove) { //queenside
-				castling[toNotMove] &= ~(1UL);
-				change_zobrist_castle(toNotMove, 0);
-			}
-			if (move.endPos == 7 + 56 * toNotMove) { //kingside
-				castling[toNotMove] &= ~(1UL << 1);
-				change_zobrist_castle(toNotMove, 1);
-			}
-		}
-	}*/
 
 private: void check_for_castle(Move& move) {
 	int castlingRemove[2] = { 0,0 };
@@ -271,6 +235,7 @@ public: Piece get_piece_from_pos(int pos) {
 			return (Piece)i;
 		}
 	}
+	return (Piece)0;
 }
 
 
@@ -286,7 +251,32 @@ private: void add_piece(Piece piece, int pos, int colour) {
 	change_zobrist_piece(colour, piece, pos);
 }
 
-
+	public: Move get_move_from_hash(MoveStore hash) {
+		Piece piece = get_piece_from_pos(hash.start);
+		Piece pieceCapture = get_piece_from_pos(hash.end);
+		if (hash.special != 0) {
+			if (piece == king) {
+				Move move = Move(king, hash.start, hash.end, white, hash.special);
+				return move;
+			}
+			else if (piece == pawn) {
+				if (hash.special < 7) {
+					Move move = Move(pawn, hash.start, hash.end, pieceCapture, 0, (Piece)hash.special);
+					return move;
+				}
+				else {
+					Move move = Move(pawn, hash.start, hash.end, pieceCapture, 0, white, hash.special);
+					return move;
+				}
+			}
+			else {
+				cout << "ERROR" << "\n";
+			}
+		}
+		else {
+			return Move(piece, hash.start, hash.end, pieceCapture);
+		}
+	}
 
 	public : 
 		uint64_t get_piece_BB(Piece colour, Piece piece) {

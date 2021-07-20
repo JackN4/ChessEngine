@@ -25,7 +25,12 @@ public: Move(Piece pieceIn, int startPosin, int endPosIn, Piece pieceCIn=white, 
 	enPassant = enPassantIn;//the piece that is remove
 }
 
-public: Move() {}
+public: Move() {
+	startPos = 0;
+	endPos = 0;
+}
+
+
 
 public: string move_to_lerf() {
 	string result;

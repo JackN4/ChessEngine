@@ -122,7 +122,7 @@ int main()
         }
         else if (input.rfind("go", 0) == 0) {
             Search search;
-            Move bestMove = search.negamax_start(board);
+            Move bestMove = search.negamax_iter(board);
             cout << "bestmove " << bestMove.move_to_lerf() << "\n";
         }
         else if (input == "zobrist") {
