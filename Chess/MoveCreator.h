@@ -30,7 +30,7 @@ uint64_t pinBB;
 
 class MoveCreator {
 public: Board board;
-	vector<Move> quiet, capture;
+	vector<Move> nonCap, capture;
 	BitOperations bitOp;
 	MoveBBCreator bbCreator;
 	vector<Pinned> pinnedPieces;
@@ -38,6 +38,7 @@ public: Board board;
 	uint64_t checkingBB = 0;
 	uint64_t pinnedBB = 0;
 	uint64_t ownColourBB = 0, oppColourBB = 0, allBB = 0;
+	bool capturesOnly;
 
 
 public: MoveCreator(Board boardIn) {
@@ -49,7 +50,7 @@ public: void debug() {
 }
 
 private: void setup() {
-	quiet.clear();
+	nonCap.clear();
 	capture.clear();
 	pinnedPieces.clear();
 	checkers = 0;
@@ -58,7 +59,14 @@ private: void setup() {
 	allBB = board.get_all_BB();
 	ownColourBB = board.bitboards[board.toMove];
 	oppColourBB = board.bitboards[board.toNotMove];
+	capturesOnly = false;
 	setup_check_pinned(board.toMove);
+}
+
+public: vector<Move> get_q_moves() {
+	setup();
+	capturesOnly = true;
+	return get_all_moves();
 }
 
 public: vector<Move> get_all_moves() {
@@ -82,10 +90,10 @@ public: vector<Move> get_all_moves() {
 			losing.push_back(move);
 		}
 	}
-	quiet.insert(quiet.begin(), losing.begin(), losing.end());
-	quiet.insert(quiet.begin(), equal.begin(), equal.end());
-	quiet.insert(quiet.begin(), winning.begin(), winning.end());
-	return quiet;
+	nonCap.insert(nonCap.begin(), losing.begin(), losing.end());
+	nonCap.insert(nonCap.begin(), equal.begin(), equal.end());
+	nonCap.insert(nonCap.begin(), winning.begin(), winning.end());
+	return nonCap;
 }
 
 /*private: bool capture_winning(Move& move) {
@@ -166,17 +174,20 @@ private: void get_pinned_other(Pinned &pinnedP) {
 	}
 	Piece pieceCaptured;
 	uint64_t movesBB = ((bbCreator.*get_BB)(pinnedP.pinnedPos, allBB, ownColourBB) & checkingBB) & pinnedP.pinBB;
-	pair<int*, int> fullScan = bitOp.full_bitscan(bbCreator.get_quiet(movesBB, oppColourBB));
-	for (int i = 0; i < fullScan.second; i++) {
-		quiet.emplace_back(Move(pinnedP.pieceType, pinnedP.pinnedPos, fullScan.first[i]));
-	}
-	fullScan = bitOp.full_bitscan(bbCreator.get_attacks(movesBB, oppColourBB));
 	int endPos;
+	pair<int*, int> fullScan = bitOp.full_bitscan(bbCreator.get_attacks(movesBB, oppColourBB));
 	for (int i = 0; i < fullScan.second; i++) {
 		endPos = fullScan.first[i];
 		pieceCaptured = board.get_piece_from_pos(endPos);
 		capture.emplace_back(Move(pinnedP.pieceType, pinnedP.pinnedPos, endPos, pieceCaptured));
 	}
+	if (!capturesOnly) {
+		fullScan = bitOp.full_bitscan(bbCreator.get_quiet(movesBB, oppColourBB));
+		for (int i = 0; i < fullScan.second; i++) {
+			nonCap.emplace_back(Move(pinnedP.pieceType, pinnedP.pinnedPos, fullScan.first[i]));
+		}
+	}
+	
 }
 
 
@@ -268,22 +279,14 @@ private: bool square_threatened_any(int pos) {
 	    
 
 
-
 private: void get_king_moves() {
 	uint64_t kingBB = board.get_piece_BB((Piece)board.toMove, king);
 	int pos = bitOp.lsb_bitscan(kingBB);
 	uint64_t allMovesBB = bbCreator.get_king_BB(pos, ownColourBB);
 	Piece pieceCaptured;
 	int castling = board.castling[board.toMove];
-	pair<int*, int> fullScan = bitOp.full_bitscan(bbCreator.get_quiet(allMovesBB, oppColourBB));
 	int endPos;
-	for (int i = 0; i < fullScan.second; i++) {
-		endPos = fullScan.first[i];
-		if (!square_threatened_any(endPos)) {
-			quiet.emplace_back(Move(king, pos, endPos));
-		}
-	}
-	fullScan = bitOp.full_bitscan(bbCreator.get_attacks(allMovesBB, oppColourBB));
+	pair<int*, int> fullScan = bitOp.full_bitscan(bbCreator.get_attacks(allMovesBB, oppColourBB));
 	for (int i = 0; i < fullScan.second; i++) {
 		endPos = fullScan.first[i];
 		if (!square_threatened_any(endPos)) {
@@ -291,15 +294,27 @@ private: void get_king_moves() {
 			capture.emplace_back(Move(king, pos, endPos, pieceCaptured));
 		}
 	}
-	if (checkers == 0) {
-		if (can_queenside_castle(castling)) { //queenside
-			quiet.emplace_back(Move(king, pos, pos - 2, white, 1));
+	if (!capturesOnly) {
+		fullScan = bitOp.full_bitscan(bbCreator.get_quiet(allMovesBB, oppColourBB));
+		for (int i = 0; i < fullScan.second; i++) {
+			endPos = fullScan.first[i];
+			if (!square_threatened_any(endPos)) {
+				nonCap.emplace_back(Move(king, pos, endPos));
+			}
 		}
-		if (can_kingside_castle(castling)) { //queenside
-			capture.emplace_back(Move(king, pos, pos + 2, white, 2));
+
+		if (checkers == 0) {
+			if (can_queenside_castle(castling)) { //queenside
+				nonCap.emplace_back(Move(king, pos, pos - 2, white, 1));
+			}
+			if (can_kingside_castle(castling)) { //queenside
+				capture.emplace_back(Move(king, pos, pos + 2, white, 2));
+			}
 		}
 	}
 }
+
+
 
 
 
@@ -337,15 +352,17 @@ private: void get_other_piece_moves(Piece piece, function get_BB) {
 	for (int i = 0; i < fullScan1.second; i++) {
 		pos = fullScan1.first[i];
 		allMovesBB = (bbCreator.*get_BB)(pos, allBB, ownColourBB) & checkingBB;
-		pair<int*, int> fullScan2 = bitOp.full_bitscan(bbCreator.get_quiet(allMovesBB, oppColourBB));
-		for (int j = 0; j < fullScan2.second; j++) {
-			quiet.emplace_back(Move(piece, pos, fullScan2.first[j]));
-		}
-		fullScan2 = bitOp.full_bitscan(bbCreator.get_attacks(allMovesBB, oppColourBB));
+		pair<int*, int> fullScan2 = bitOp.full_bitscan(bbCreator.get_attacks(allMovesBB, oppColourBB));
 		for (int j = 0; j < fullScan2.second; j++) {
 			endPos = fullScan2.first[j];
 			pieceCaptured = board.get_piece_from_pos(endPos);
 			capture.emplace_back(Move(piece, pos, endPos, pieceCaptured));
+		}
+		if (!capturesOnly) {
+			fullScan2 = bitOp.full_bitscan(bbCreator.get_quiet(allMovesBB, oppColourBB));
+			for (int j = 0; j < fullScan2.second; j++) {
+				nonCap.emplace_back(Move(piece, pos, fullScan2.first[j]));
+			}
 		}
 	}
 }
@@ -363,13 +380,13 @@ private: void pawn_quietBB_to_moves(uint64_t moveBB, int diff) {//do promo in he
 	int pos;
 	for (int i = 0; i < fullScan.second; i++) {
 		pos = fullScan.first[i];
-		quiet.emplace_back(Move(pawn, pos + diff, pos));
+		nonCap.emplace_back(Move(pawn, pos + diff, pos));
 	}
 	fullScan = bitOp.full_bitscan(promos.second);
 	for (int i = 0; i < fullScan.second; i++) {
 		pos = fullScan.first[i];
 		for (int j = 3; j < 7; j++) {
-			quiet.emplace_back(Move(pawn, pos+diff, pos, white, 0, (Piece)j));
+			nonCap.emplace_back(Move(pawn, pos+diff, pos, white, 0, (Piece)j));
 		}
 	}
 }
@@ -406,30 +423,34 @@ private: void pawn_enPassantBB_to_moves(uint64_t moveBB, int diff) {//do promo i
 
 private: void get_pawn_moves(uint64_t pawnBB, uint64_t emptyBB, uint64_t oppBB) { //rename
 	if (board.toMove == 0) {
-		pair<uint64_t, uint64_t> quietBBs = bbCreator.get_white_pawn_quiet(pawnBB, emptyBB);
 		pair<uint64_t, uint64_t> captureBBs = bbCreator.get_white_pawn_attack(pawnBB, oppBB);
-		pawn_quietBB_to_moves(quietBBs.first, -8);
-		pawn_quietBB_to_moves(quietBBs.second, -16);
 		pawn_captureBB_to_moves(captureBBs.first, -7);
 		pawn_captureBB_to_moves(captureBBs.second, -9);
-		if (board.enPassant != 0) {
-			pair<uint64_t, uint64_t> enPassant = bbCreator.get_white_pawn_attack(pawnBB, (1ULL << board.enPassant));
-			pawn_enPassantBB_to_moves(enPassant.first & emptyBB, -7);
-			pawn_enPassantBB_to_moves(enPassant.second & emptyBB, -9);
+		if (!capturesOnly) {
+			pair<uint64_t, uint64_t> quietBBs = bbCreator.get_white_pawn_quiet(pawnBB, emptyBB);
+			pawn_quietBB_to_moves(quietBBs.first, -8);
+			pawn_quietBB_to_moves(quietBBs.second, -16);
+			if (board.enPassant != 0) {
+				pair<uint64_t, uint64_t> enPassant = bbCreator.get_white_pawn_attack(pawnBB, (1ULL << board.enPassant));
+				pawn_enPassantBB_to_moves(enPassant.first & emptyBB, -7);
+				pawn_enPassantBB_to_moves(enPassant.second & emptyBB, -9);
+			}
 		}
 	}
 	else
 	{
-		pair<uint64_t, uint64_t> quietBBs = bbCreator.get_black_pawn_quiet(pawnBB, emptyBB);
 		pair<uint64_t, uint64_t> captureBBs = bbCreator.get_black_pawn_attack(pawnBB, oppBB);
-		pawn_quietBB_to_moves(quietBBs.first, 8);
-		pawn_quietBB_to_moves(quietBBs.second, 16);
 		pawn_captureBB_to_moves(captureBBs.first, 9);
 		pawn_captureBB_to_moves(captureBBs.second, 7);
-		if (board.enPassant != 0) {
-			pair<uint64_t, uint64_t> enPassant = bbCreator.get_black_pawn_attack(pawnBB, (1ULL << board.enPassant));
-			pawn_enPassantBB_to_moves(enPassant.first & emptyBB, 9);
-			pawn_enPassantBB_to_moves(enPassant.second & emptyBB, 7);
+		if (!capturesOnly) {
+			pair<uint64_t, uint64_t> quietBBs = bbCreator.get_black_pawn_quiet(pawnBB, emptyBB);
+			pawn_quietBB_to_moves(quietBBs.first, 8);
+			pawn_quietBB_to_moves(quietBBs.second, 16);
+			if (board.enPassant != 0) {
+				pair<uint64_t, uint64_t> enPassant = bbCreator.get_black_pawn_attack(pawnBB, (1ULL << board.enPassant));
+				pawn_enPassantBB_to_moves(enPassant.first & emptyBB, 9);
+				pawn_enPassantBB_to_moves(enPassant.second & emptyBB, 7);
+			}
 		}
 	}
 }

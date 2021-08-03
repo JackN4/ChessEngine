@@ -7,6 +7,8 @@
 #pragma intrinsic(_BitScanReverse64)
 using std::pair;
 
+
+
 struct BitOperations {
 int lsb_bitscan(uint64_t BB) {
 	unsigned long index;

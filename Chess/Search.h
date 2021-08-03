@@ -51,7 +51,7 @@ public: Move negamax_start(MoveCreator& moveGen, SearchTable& table, int depth) 
 private: int negamax(MoveCreator &moveGen, int depth, int alpha, int beta, SearchTable &table) { 
 	pair<bool, EntrySearch> entry = table.get_entry(moveGen.board.zobristKey);
 	if (entry.first) {
-		if (entry.second.depth == depth) { // can maybe do more here
+		if (entry.second.depth >= depth) { // can maybe do more here
 			if (entry.second.node == 1) {
 				return entry.second.value;
 			}
@@ -69,12 +69,8 @@ private: int negamax(MoveCreator &moveGen, int depth, int alpha, int beta, Searc
 	}
 	int score;
 	if (depth == 0) {
-		if (moveGen.board.toMove == white) {
-			score = evaluator.eval(moveGen.board);
-		}
-		else {
-			score = -(evaluator.eval(moveGen.board));
-		}
+		//score = q_search(moveGen, -beta, -alpha);
+		score = evaluator.eval(moveGen.board);
 		table.add(EntrySearch(moveGen.board.zobristKey, 0, score, 1));
 		return score;
 	}
@@ -132,6 +128,30 @@ private: int negamax(MoveCreator &moveGen, int depth, int alpha, int beta, Searc
 	}
 	else {
 		table.add(EntrySearch(moveGen.board.zobristKey, depth, bestScore, 3, bestMove));
+	}
+	return alpha;
+}
+
+private: int q_search(MoveCreator& moveGen, int alpha, int beta) {
+	int current_eval = evaluator.eval(moveGen.board); //we take the current evaluation as a lower bound
+	if (current_eval >= beta) { //if eval is higher than beta we can return beta as we know the move is too good to ever be searched
+		return beta;
+	}
+	if (alpha < current_eval) {
+		alpha = current_eval; // we set alpha to be the current lower bound if it is higher than alpha
+	}
+	int score;
+	vector<Move> q_moves = moveGen.get_q_moves();
+	for (Move& move : q_moves) {
+		moveGen.board.make_move(move);
+		score = -q_search(moveGen, -beta, -alpha);
+		moveGen.board.unmake_move(move);
+		if (score >= beta) {
+			return beta; //score is high enough to prune as we know this position is too good to ever be chosen
+		}
+		if (score > alpha) {
+			alpha = score;
+		}
 	}
 	return alpha;
 }

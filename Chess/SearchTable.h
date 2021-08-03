@@ -13,11 +13,12 @@ using std::cout;
 // pv - all nodes searched
 // cut (fail high, score>beta) this move is too good and the opponent would just avoid this position
 // all (fail low, no score was >alpha) this position is not good enough as we can reach another better position, we will not make the move which allowed us to be put in this position
+// q - eval found in quiescence search, normally doesn't have depth attached as we search till end
 
 struct MoveStore { //efficient way to store move
-	char start;
-	char end;
-	char special;
+	char start = 0;
+	char end = 0;
+	char special = 0;
 	public: MoveStore(Move move) {
 		start = move.startPos;
 		end = move.endPos;

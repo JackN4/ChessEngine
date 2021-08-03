@@ -85,7 +85,12 @@ public: int eval(Board& board) {
 		score -= get_pop_count(board, 1, i + 2) * vals[i];
 	}
 	score += get_pst_val(board)/2;
-	return score;
+	if (board.toMove = white) {
+		return score;
+	}
+	else {
+		return -score;
+	}
 }
 
 private: int get_pop_count(Board& board, int colour, int piece) {
