@@ -4,7 +4,7 @@
 class Evaluator
 {
 	BitOperations bitOp;
-	int vals[5] = { 100, 320, 330, 500, 900 };
+public:int vals[5] = { 100, 320, 330, 500, 900 };
 	int PSTs[2][4][64] = { {
 		{0,  0,  0,  0,  0,  0,  0,  0,
 	50, 50, 50, 50, 50, 50, 50, 50,
@@ -85,7 +85,7 @@ public: int eval(Board& board) {
 		score -= get_pop_count(board, 1, i + 2) * vals[i];
 	}
 	score += get_pst_val(board)/2;
-	if (board.toMove = white) {
+	if (board.toMove == white) {
 		return score;
 	}
 	else {

@@ -38,7 +38,7 @@ struct EntrySearch { //add age
 	MoveStore bestMove;
 	int depth;
 	int value;
-	int node; //1-pv(exact) 2-cut(lower bound) 3(upper bound)
+	int node; //1-pv(exact) 2-cut(lower bound) 3all(upper bound) 4 - pvQ 5 - cutQ 6 - allQ
 public: EntrySearch(uint64_t keyIn, int depthIn, int valueIn, int nodeIn, Move bestMoveIn) {
 	key = keyIn;
 	bestMove = MoveStore(bestMoveIn);

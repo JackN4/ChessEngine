@@ -39,14 +39,11 @@ public: Board board;
 	uint64_t pinnedBB = 0;
 	uint64_t ownColourBB = 0, oppColourBB = 0, allBB = 0;
 	bool capturesOnly;
+	bool debug;
 
 
 public: MoveCreator(Board boardIn) {
 	board = boardIn;
-}
-
-public: void debug() {
-
 }
 
 private: void setup() {
@@ -59,18 +56,39 @@ private: void setup() {
 	allBB = board.get_all_BB();
 	ownColourBB = board.bitboards[board.toMove];
 	oppColourBB = board.bitboards[board.toNotMove];
-	capturesOnly = false;
 	setup_check_pinned(board.toMove);
 }
 
 public: vector<Move> get_q_moves() {
 	setup();
 	capturesOnly = true;
-	return get_all_moves();
+	return get_moves();
 }
 
 public: vector<Move> get_all_moves() {
+	return get_all_moves(false);
+}
+
+public: vector<Move> get_all_moves(bool debugIn) {
 	setup();
+	capturesOnly = false;
+	debug = debugIn;
+	if (debug) {
+		cout << "checkers: " << checkers << "\n";
+		cout << "checking: " << checkingBB << "\n";
+		cout << "wKing: " << board.get_piece_BB(white, king) << "\n";
+ 		cout << "knight: " << board.bitboards[3] << "\n";
+		cout << "bishop: " << board.bitboards[4] << "\n";
+		cout << "move1" << "\n";
+		cout << "pawnsB: " << board.get_piece_BB(black, pawn) << "\n";
+	}
+	return get_moves();
+}
+
+private: vector<Move> get_moves() {
+	if (debug) {
+		cout << capturesOnly << "\n";
+	}
 	if(checkers == 2){
 		get_king_moves();
 	}
@@ -375,8 +393,14 @@ private: void get_pinned_pawn(Pinned pinnedPawn) {
 
 private: void pawn_quietBB_to_moves(uint64_t moveBB, int diff) {//do promo in here
 	moveBB &= checkingBB;
+	
 	pair<uint64_t, uint64_t> promos = bbCreator.get_promo_BB(moveBB);
 	pair<int*, int> fullScan = bitOp.full_bitscan(promos.first);
+	if (debug) {
+		cout << "pawnsProm: " << promos.first << "\n";
+		cout << "checking: " << checkingBB << "\n";
+		cout << "pawnCount: " << fullScan.second << "\n";
+	}
 	int pos;
 	for (int i = 0; i < fullScan.second; i++) {
 		pos = fullScan.first[i];
@@ -444,6 +468,9 @@ private: void get_pawn_moves(uint64_t pawnBB, uint64_t emptyBB, uint64_t oppBB) 
 		pawn_captureBB_to_moves(captureBBs.second, 7);
 		if (!capturesOnly) {
 			pair<uint64_t, uint64_t> quietBBs = bbCreator.get_black_pawn_quiet(pawnBB, emptyBB);
+			if (debug) {
+				cout << "movesBB: " << (quietBBs.first | quietBBs.second) << "\n";
+			}
 			pawn_quietBB_to_moves(quietBBs.first, 8);
 			pawn_quietBB_to_moves(quietBBs.second, 16);
 			if (board.enPassant != 0) {
