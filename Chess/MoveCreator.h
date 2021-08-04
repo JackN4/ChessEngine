@@ -13,16 +13,16 @@ const uint64_t allSet = 0xffffffffffffffff;
 
 struct Pinned
 {
-Piece pieceType;
-int pinnedPos, attackerPos;
-uint64_t pinBB;
+	Piece pieceType;
+	int pinnedPos, attackerPos;
+	uint64_t pinBB;
 
-	  Pinned(int pieceIn, int pinnnedIn, int attackerIn, uint64_t pinBBIn) {
-		  pieceType = (Piece)pieceIn;
-		  pinnedPos = pinnnedIn;
-		  attackerPos = attackerIn;
-		  pinBB = pinBBIn;
-	  }
+	Pinned(int pieceIn, int pinnnedIn, int attackerIn, uint64_t pinBBIn) {
+		pieceType = (Piece)pieceIn;
+		pinnedPos = pinnnedIn;
+		attackerPos = attackerIn;
+		pinBB = pinBBIn;
+	}
 };
 
 
@@ -30,26 +30,24 @@ uint64_t pinBB;
 
 class MoveCreator {
 public: Board board;
-	vector<Move> quiet, capture;
-	BitOperations bitOp;
-	MoveBBCreator bbCreator;
-	vector<Pinned> pinnedPieces;
-	int checkers = 0;
-	uint64_t checkingBB = 0;
-	uint64_t pinnedBB = 0;
-	uint64_t ownColourBB = 0, oppColourBB = 0, allBB = 0;
+	  vector<Move> nonCap, capture;
+	  BitOperations bitOp;
+	  MoveBBCreator bbCreator;
+	  vector<Pinned> pinnedPieces;
+	  int checkers = 0;
+	  uint64_t checkingBB = 0;
+	  uint64_t pinnedBB = 0;
+	  uint64_t ownColourBB = 0, oppColourBB = 0, allBB = 0;
+	  bool capturesOnly;
+	  bool debug;
 
 
 public: MoveCreator(Board boardIn) {
 	board = boardIn;
 }
 
-public: void debug() {
-
-}
-
 private: void setup() {
-	quiet.clear();
+	nonCap.clear();
 	capture.clear();
 	pinnedPieces.clear();
 	checkers = 0;
@@ -61,9 +59,37 @@ private: void setup() {
 	setup_check_pinned(board.toMove);
 }
 
-public: vector<Move> get_all_moves() {
+public: vector<Move> get_q_moves() {
 	setup();
-	if(checkers == 2){
+	capturesOnly = true;
+	return get_moves();
+}
+
+public: vector<Move> get_all_moves() {
+	return get_all_moves(false);
+}
+
+public: vector<Move> get_all_moves(bool debugIn) {
+	setup();
+	capturesOnly = false;
+	debug = debugIn;
+	if (debug) {
+		cout << "checkers: " << checkers << "\n";
+		cout << "checking: " << checkingBB << "\n";
+		cout << "wKing: " << board.get_piece_BB(white, king) << "\n";
+		cout << "knight: " << board.bitboards[3] << "\n";
+		cout << "bishop: " << board.bitboards[4] << "\n";
+		cout << "move1" << "\n";
+		cout << "pawnsB: " << board.get_piece_BB(black, pawn) << "\n";
+	}
+	return get_moves();
+}
+
+private: vector<Move> get_moves() {
+	if (debug) {
+		cout << capturesOnly << "\n";
+	}
+	if (checkers == 2) {
 		get_king_moves();
 	}
 	else {
@@ -75,67 +101,65 @@ public: vector<Move> get_all_moves() {
 		if (move.pieceType < move.pieceCapture) {
 			winning.push_back(move);
 		}
-		else if (move.pieceType == move.pieceCapture){
+		else if (move.pieceType == move.pieceCapture) {
 			equal.push_back(move);
 		}
 		else {
 			losing.push_back(move);
 		}
 	}
-	quiet.insert(quiet.begin(), losing.begin(), losing.end());
-	quiet.insert(quiet.begin(), equal.begin(), equal.end());
-	quiet.insert(quiet.begin(), winning.begin(), winning.end());
-	return quiet;
+	nonCap.insert(nonCap.begin(), losing.begin(), losing.end());
+	nonCap.insert(nonCap.begin(), equal.begin(), equal.end());
+	nonCap.insert(nonCap.begin(), winning.begin(), winning.end());
+	return nonCap;
 }
 
-/*private: bool capture_winning(Move& move) {
-	if (move.pieceType >= move.pieceCapture) {
-		return true;
-	}
-	else {
-		int value = 0;
-		pair<Piece, int> attacker = get_smallest_attacker(move.startPos, board.toMove);
-	}
+	   /*private: bool capture_winning(Move& move) {
+		   if (move.pieceType >= move.pieceCapture) {
+			   return true;
+		   }
+		   else {
+			   int value = 0;
+			   pair<Piece, int> attacker = get_smallest_attacker(move.startPos, board.toMove);
+		   }
+	   }
+	   private: pair<Piece, int> get_smallest_attacker(int pos, int colour) {
+		   Piece oppColour = (Piece)(board.toMove ^ 1);
+		   uint64_t allBBNoPos = allBB & ~ 1ULL << pos;
+		   uint64_t pawnAttackers = bbCreator.get_king_pawn_attack_BB(pos, board.toMove) & board.get_piece_BB(oppColour, pawn);
+		   if (pawnAttackers != 0) { // pawn attacks
+			   return make_pair(pawn, bitOp.lsb_bitscan(pawnAttackers));
+		   }
+		   uint64_t knightAttackers = bbCreator.get_knight_BB_empty(pos) & board.get_piece_BB(oppColour, knight);
+		   if (knightAttackers != 0) { //knight attacks
+			   return make_pair(knight, bitOp.lsb_bitscan(knightAttackers));
+		   }
+		   int bishopAttacker = bbCreator.attacker_pos(new int[4] { 0,2,4,6 }, board.get_piece_BB(oppColour, bishop), pos, allBBNoPos);
+		   if (bishopAttacker < 64) {
+			   return make_pair(bishop, bitOp.lsb_bitscan(bishopAttacker));
+		   }
+		   int rookAttacker = bbCreator.attacker_pos(new int[4]{ 1,3,5,7 }, board.get_piece_BB(oppColour, rook), pos, allBBNoPos);
+		   if (bishopAttacker < 64) {
+			   return make_pair(rook, bitOp.lsb_bitscan(rookAttacker));
+		   }
+		   int queenAttacker = bbCreator.attacker_pos(new int[8]{ 0,1,2,3,4,5,6,7 }, board.get_piece_BB(oppColour, queen), pos, allBBNoPos);
+		   if (bishopAttacker < 64) {
+			   return make_pair(queen, bitOp.lsb_bitscan(queenAttacker));
+		   }
+		   uint64_t kingAttacker = bbCreator.get_king_BB(pos, 0) & board.get_piece_BB(oppColour, king);
+		   if (kingAttacker != 0) {
+			   return make_pair(king, bitOp.lsb_bitscan(kingAttacker));
+		   }
+		   return make_pair(white, 0);
 
-}
-
-private: pair<Piece, int> get_smallest_attacker(int pos, int colour) {
-	Piece oppColour = (Piece)(board.toMove ^ 1);
-	uint64_t allBBNoPos = allBB & ~ 1ULL << pos;
-	uint64_t pawnAttackers = bbCreator.get_king_pawn_attack_BB(pos, board.toMove) & board.get_piece_BB(oppColour, pawn);
-	if (pawnAttackers != 0) { // pawn attacks
-		return make_pair(pawn, bitOp.lsb_bitscan(pawnAttackers));
-	}
-	uint64_t knightAttackers = bbCreator.get_knight_BB_empty(pos) & board.get_piece_BB(oppColour, knight);
-	if (knightAttackers != 0) { //knight attacks
-		return make_pair(knight, bitOp.lsb_bitscan(knightAttackers));
-	}
-	int bishopAttacker = bbCreator.attacker_pos(new int[4] { 0,2,4,6 }, board.get_piece_BB(oppColour, bishop), pos, allBBNoPos);
-	if (bishopAttacker < 64) {
-		return make_pair(bishop, bitOp.lsb_bitscan(bishopAttacker));
-	}
-	int rookAttacker = bbCreator.attacker_pos(new int[4]{ 1,3,5,7 }, board.get_piece_BB(oppColour, rook), pos, allBBNoPos);
-	if (bishopAttacker < 64) {
-		return make_pair(rook, bitOp.lsb_bitscan(rookAttacker));
-	}
-	int queenAttacker = bbCreator.attacker_pos(new int[8]{ 0,1,2,3,4,5,6,7 }, board.get_piece_BB(oppColour, queen), pos, allBBNoPos);
-	if (bishopAttacker < 64) {
-		return make_pair(queen, bitOp.lsb_bitscan(queenAttacker));
-	}
-	uint64_t kingAttacker = bbCreator.get_king_BB(pos, 0) & board.get_piece_BB(oppColour, king);
-	if (kingAttacker != 0) {
-		return make_pair(king, bitOp.lsb_bitscan(kingAttacker));
-	}
-	return make_pair(white, 0);
-	
-	return false;
-}*/
+		   return false;
+	   }*/
 
 
 
 
 private: void get_pinned_moves() {
-	for (Pinned &pinnedP : pinnedPieces) {
+	for (Pinned& pinnedP : pinnedPieces) {
 		pinnedBB |= (1ULL << pinnedP.pinnedPos);
 		if (pinnedP.pieceType == pawn) {
 			get_pinned_pawn(pinnedP);
@@ -148,7 +172,7 @@ private: void get_pinned_moves() {
 
 
 
-private: void get_pinned_other(Pinned &pinnedP) {
+private: void get_pinned_other(Pinned& pinnedP) {
 	function get_BB = &MoveBBCreator::get_knight_BB; // just placeholder value
 	switch (pinnedP.pieceType) {
 	case knight:
@@ -166,17 +190,20 @@ private: void get_pinned_other(Pinned &pinnedP) {
 	}
 	Piece pieceCaptured;
 	uint64_t movesBB = ((bbCreator.*get_BB)(pinnedP.pinnedPos, allBB, ownColourBB) & checkingBB) & pinnedP.pinBB;
-	pair<int*, int> fullScan = bitOp.full_bitscan(bbCreator.get_quiet(movesBB, oppColourBB));
-	for (int i = 0; i < fullScan.second; i++) {
-		quiet.emplace_back(Move(pinnedP.pieceType, pinnedP.pinnedPos, fullScan.first[i]));
-	}
-	fullScan = bitOp.full_bitscan(bbCreator.get_attacks(movesBB, oppColourBB));
 	int endPos;
+	pair<int*, int> fullScan = bitOp.full_bitscan(bbCreator.get_attacks(movesBB, oppColourBB));
 	for (int i = 0; i < fullScan.second; i++) {
 		endPos = fullScan.first[i];
 		pieceCaptured = board.get_piece_from_pos(endPos);
 		capture.emplace_back(Move(pinnedP.pieceType, pinnedP.pinnedPos, endPos, pieceCaptured));
 	}
+	if (!capturesOnly) {
+		fullScan = bitOp.full_bitscan(bbCreator.get_quiet(movesBB, oppColourBB));
+		for (int i = 0; i < fullScan.second; i++) {
+			nonCap.emplace_back(Move(pinnedP.pieceType, pinnedP.pinnedPos, fullScan.first[i]));
+		}
+	}
+
 }
 
 
@@ -211,7 +238,7 @@ private: void setup_check_pinned(int colour) { //return attacking rays, return r
 	}
 }
 
-//can be improved, made branchless
+	   //can be improved, made branchless
 private: void get_all_attackers_pinned(int* moves, uint64_t attackers, int kingPos, int colour) {//returns a bitboard of rays attacking king and list of pinned pieces and direction they are pinned
 	uint64_t blockersBB;
 	uint64_t rayBB;
@@ -228,7 +255,7 @@ private: void get_all_attackers_pinned(int* moves, uint64_t attackers, int kingP
 				if (blockersBB != 0) {
 					blockerPos2 = bbCreator.get_blocker_pos(blockersBB, moves[i]);
 					if (((1ULL << blockerPos2) & attackers) != 0) {
-						pinnedBB = (bbCreator.lookup.slideMoves[blockerPos2][moves[i]] ^ bbCreator.lookup.slideMoves[kingPos][moves[i]]) ; //line can be done better using the direction value to get the pos for the ray to xor
+						pinnedBB = (bbCreator.lookup.slideMoves[blockerPos2][moves[i]] ^ bbCreator.lookup.slideMoves[kingPos][moves[i]]); //line can be done better using the direction value to get the pos for the ray to xor
 						pinnedPieces.emplace_back(Pinned(board.get_piece_from_pos(blockerPos), blockerPos, blockerPos2, pinnedBB));
 					}
 				}
@@ -257,7 +284,7 @@ private: bool square_threatened_any(int pos) {
 	}
 	int moves2[4] = { 1,3,5,7 }; //straights
 	uint64_t straightAttackers = board.get_piece_BB(oppColour, queen) | board.get_piece_BB(oppColour, rook);
-	if (bbCreator.any_attackers(moves2, straightAttackers, pos , allBBNoKing)) {
+	if (bbCreator.any_attackers(moves2, straightAttackers, pos, allBBNoKing)) {
 		return true;
 	}
 	if ((bbCreator.get_king_pawn_attack_BB(pos, board.toMove) & board.get_piece_BB(oppColour, pawn)) != 0) { // pawn attacks
@@ -265,7 +292,6 @@ private: bool square_threatened_any(int pos) {
 	}
 	return false;
 }
-	    
 
 
 
@@ -275,15 +301,8 @@ private: void get_king_moves() {
 	uint64_t allMovesBB = bbCreator.get_king_BB(pos, ownColourBB);
 	Piece pieceCaptured;
 	int castling = board.castling[board.toMove];
-	pair<int*, int> fullScan = bitOp.full_bitscan(bbCreator.get_quiet(allMovesBB, oppColourBB));
 	int endPos;
-	for (int i = 0; i < fullScan.second; i++) {
-		endPos = fullScan.first[i];
-		if (!square_threatened_any(endPos)) {
-			quiet.emplace_back(Move(king, pos, endPos));
-		}
-	}
-	fullScan = bitOp.full_bitscan(bbCreator.get_attacks(allMovesBB, oppColourBB));
+	pair<int*, int> fullScan = bitOp.full_bitscan(bbCreator.get_attacks(allMovesBB, oppColourBB));
 	for (int i = 0; i < fullScan.second; i++) {
 		endPos = fullScan.first[i];
 		if (!square_threatened_any(endPos)) {
@@ -291,21 +310,33 @@ private: void get_king_moves() {
 			capture.emplace_back(Move(king, pos, endPos, pieceCaptured));
 		}
 	}
-	if (checkers == 0) {
-		if (can_queenside_castle(castling)) { //queenside
-			quiet.emplace_back(Move(king, pos, pos - 2, white, 1));
+	if (!capturesOnly) {
+		fullScan = bitOp.full_bitscan(bbCreator.get_quiet(allMovesBB, oppColourBB));
+		for (int i = 0; i < fullScan.second; i++) {
+			endPos = fullScan.first[i];
+			if (!square_threatened_any(endPos)) {
+				nonCap.emplace_back(Move(king, pos, endPos));
+			}
 		}
-		if (can_kingside_castle(castling)) { //queenside
-			capture.emplace_back(Move(king, pos, pos + 2, white, 2));
+
+		if (checkers == 0) {
+			if (can_queenside_castle(castling)) { //queenside
+				nonCap.emplace_back(Move(king, pos, pos - 2, white, 1));
+			}
+			if (can_kingside_castle(castling)) { //queenside
+				capture.emplace_back(Move(king, pos, pos + 2, white, 2));
+			}
 		}
 	}
 }
 
 
 
+
+
 private: bool can_queenside_castle(int castling) {
 	int rowPos = 56 * board.toMove;
-	if ((castling & 1UL) == 1){
+	if ((castling & 1UL) == 1) {
 		if (bbCreator.sqr_empty(allBB, rowPos + 1) && bbCreator.sqr_empty(allBB, rowPos + 2) && bbCreator.sqr_empty(allBB, rowPos + 3)) {
 			if (!square_threatened_any(rowPos + 2) && !square_threatened_any(rowPos + 3)) {
 				return true;
@@ -337,15 +368,17 @@ private: void get_other_piece_moves(Piece piece, function get_BB) {
 	for (int i = 0; i < fullScan1.second; i++) {
 		pos = fullScan1.first[i];
 		allMovesBB = (bbCreator.*get_BB)(pos, allBB, ownColourBB) & checkingBB;
-		pair<int*, int> fullScan2 = bitOp.full_bitscan(bbCreator.get_quiet(allMovesBB, oppColourBB));
-		for (int j = 0; j < fullScan2.second; j++) {
-			quiet.emplace_back(Move(piece, pos, fullScan2.first[j]));
-		}
-		fullScan2 = bitOp.full_bitscan(bbCreator.get_attacks(allMovesBB, oppColourBB));
+		pair<int*, int> fullScan2 = bitOp.full_bitscan(bbCreator.get_attacks(allMovesBB, oppColourBB));
 		for (int j = 0; j < fullScan2.second; j++) {
 			endPos = fullScan2.first[j];
 			pieceCaptured = board.get_piece_from_pos(endPos);
 			capture.emplace_back(Move(piece, pos, endPos, pieceCaptured));
+		}
+		if (!capturesOnly) {
+			fullScan2 = bitOp.full_bitscan(bbCreator.get_quiet(allMovesBB, oppColourBB));
+			for (int j = 0; j < fullScan2.second; j++) {
+				nonCap.emplace_back(Move(piece, pos, fullScan2.first[j]));
+			}
 		}
 	}
 }
@@ -358,18 +391,24 @@ private: void get_pinned_pawn(Pinned pinnedPawn) {
 
 private: void pawn_quietBB_to_moves(uint64_t moveBB, int diff) {//do promo in here
 	moveBB &= checkingBB;
+
 	pair<uint64_t, uint64_t> promos = bbCreator.get_promo_BB(moveBB);
 	pair<int*, int> fullScan = bitOp.full_bitscan(promos.first);
+	if (debug) {
+		cout << "pawnsProm: " << promos.first << "\n";
+		cout << "checking: " << checkingBB << "\n";
+		cout << "pawnCount: " << fullScan.second << "\n";
+	}
 	int pos;
 	for (int i = 0; i < fullScan.second; i++) {
 		pos = fullScan.first[i];
-		quiet.emplace_back(Move(pawn, pos + diff, pos));
+		nonCap.emplace_back(Move(pawn, pos + diff, pos));
 	}
 	fullScan = bitOp.full_bitscan(promos.second);
 	for (int i = 0; i < fullScan.second; i++) {
 		pos = fullScan.first[i];
 		for (int j = 3; j < 7; j++) {
-			quiet.emplace_back(Move(pawn, pos+diff, pos, white, 0, (Piece)j));
+			nonCap.emplace_back(Move(pawn, pos + diff, pos, white, 0, (Piece)j));
 		}
 	}
 }
@@ -406,30 +445,37 @@ private: void pawn_enPassantBB_to_moves(uint64_t moveBB, int diff) {//do promo i
 
 private: void get_pawn_moves(uint64_t pawnBB, uint64_t emptyBB, uint64_t oppBB) { //rename
 	if (board.toMove == 0) {
-		pair<uint64_t, uint64_t> quietBBs = bbCreator.get_white_pawn_quiet(pawnBB, emptyBB);
 		pair<uint64_t, uint64_t> captureBBs = bbCreator.get_white_pawn_attack(pawnBB, oppBB);
-		pawn_quietBB_to_moves(quietBBs.first, -8);
-		pawn_quietBB_to_moves(quietBBs.second, -16);
 		pawn_captureBB_to_moves(captureBBs.first, -7);
 		pawn_captureBB_to_moves(captureBBs.second, -9);
-		if (board.enPassant != 0) {
-			pair<uint64_t, uint64_t> enPassant = bbCreator.get_white_pawn_attack(pawnBB, (1ULL << board.enPassant));
-			pawn_enPassantBB_to_moves(enPassant.first & emptyBB, -7);
-			pawn_enPassantBB_to_moves(enPassant.second & emptyBB, -9);
+		if (!capturesOnly) {
+			pair<uint64_t, uint64_t> quietBBs = bbCreator.get_white_pawn_quiet(pawnBB, emptyBB);
+			pawn_quietBB_to_moves(quietBBs.first, -8);
+			pawn_quietBB_to_moves(quietBBs.second, -16);
+			if (board.enPassant != 0) {
+				pair<uint64_t, uint64_t> enPassant = bbCreator.get_white_pawn_attack(pawnBB, (1ULL << board.enPassant));
+				pawn_enPassantBB_to_moves(enPassant.first & emptyBB, -7);
+				pawn_enPassantBB_to_moves(enPassant.second & emptyBB, -9);
+			}
 		}
 	}
 	else
 	{
-		pair<uint64_t, uint64_t> quietBBs = bbCreator.get_black_pawn_quiet(pawnBB, emptyBB);
 		pair<uint64_t, uint64_t> captureBBs = bbCreator.get_black_pawn_attack(pawnBB, oppBB);
-		pawn_quietBB_to_moves(quietBBs.first, 8);
-		pawn_quietBB_to_moves(quietBBs.second, 16);
 		pawn_captureBB_to_moves(captureBBs.first, 9);
 		pawn_captureBB_to_moves(captureBBs.second, 7);
-		if (board.enPassant != 0) {
-			pair<uint64_t, uint64_t> enPassant = bbCreator.get_black_pawn_attack(pawnBB, (1ULL << board.enPassant));
-			pawn_enPassantBB_to_moves(enPassant.first & emptyBB, 9);
-			pawn_enPassantBB_to_moves(enPassant.second & emptyBB, 7);
+		if (!capturesOnly) {
+			pair<uint64_t, uint64_t> quietBBs = bbCreator.get_black_pawn_quiet(pawnBB, emptyBB);
+			if (debug) {
+				cout << "movesBB: " << (quietBBs.first | quietBBs.second) << "\n";
+			}
+			pawn_quietBB_to_moves(quietBBs.first, 8);
+			pawn_quietBB_to_moves(quietBBs.second, 16);
+			if (board.enPassant != 0) {
+				pair<uint64_t, uint64_t> enPassant = bbCreator.get_black_pawn_attack(pawnBB, (1ULL << board.enPassant));
+				pawn_enPassantBB_to_moves(enPassant.first & emptyBB, 9);
+				pawn_enPassantBB_to_moves(enPassant.second & emptyBB, 7);
+			}
 		}
 	}
 }
