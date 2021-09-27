@@ -16,26 +16,26 @@ using namespace N;
 class Board
 {
 
-public: uint64_t bitboards[8] = {0};
+public: uint64_t bitboards[8] = {0}; //All bitboards needed to store bitboards
 //public: stack<Move> moves;
-	int toMove= 0;
-	int toNotMove = 0;
+	int toMove= 0;//Which colour is moving
+	int toNotMove = 0; //Which colour isnt moving
 	int castling[2] = { 0,0 }; //KQkq
-public: uint64_t zobristKey = 0;
-	Zobrist zobrist = Zobrist();
-	int enPassant;
+public: uint64_t zobristKey = 0; //The current zobrist key for board
+	Zobrist zobrist = Zobrist(); //Gets zobrist info
+	int enPassant; //Information about en passant for next move
 
 
 	private: void change_zobrist_piece(int colour, Piece piece, int sqr) {
-		zobristKey ^= zobrist.pieces[colour][piece - 2][sqr];
+		zobristKey ^= zobrist.pieces[colour][piece - 2][sqr]; //Add or remove piece to zobrist key
 	}
 
 	private: void change_zobrist_castle(int colour, int side) {
-		zobristKey ^= zobrist.castling[colour][side];
+		zobristKey ^= zobrist.castling[colour][side]; //Change castling rights in zobrist key
 	}
 
 	private: void change_zobrist_multiple_castle(int colour, int changes) { //colour to change and bits to change (01, 10, 11)
-		int lsb;
+		int lsb; //Changes multiple castling rights at once
 		if (changes & 1) { // odd
 			zobristKey ^= zobrist.castling[colour][0];
 		}
@@ -44,7 +44,7 @@ public: uint64_t zobristKey = 0;
 		}
 	}
 
-	private: void change_zobrist_enPassant(int sqr) {
+	private: void change_zobrist_enPassant(int sqr) { //Change en passant rights for zobrist key
 		if (sqr != 0) {
 			zobristKey ^= zobrist.enPassant[sqr % 8];
 		}
@@ -88,11 +88,11 @@ public: uint64_t zobristKey = 0;
 		}
 	}*/
 
-private: void check_for_castle(Move& move) {
+private: void check_for_castle(Move& move) { //Checks if changes are needed to castling rights or perform some castling
 	int castlingRemove[2] = { 0,0 };
 	move.castlingBefore[0] = castling[0];
 	move.castlingBefore[1] = castling[1];
-	if (move.pieceType == king) {
+	if (move.pieceType == king) { //If king is moving then no castling can occur after
 		castlingRemove[toMove] = 3;
 		if (move.castling != 0) {
 			int row = 56 * toMove;
@@ -104,7 +104,7 @@ private: void check_for_castle(Move& move) {
 			}
 		}
 	}
-	else if (move.pieceType == rook) { // rook move
+	else if (move.pieceType == rook) { // rook move so removes castling rights on that side
 		if (move.startPos == 0 + 56 * toMove) { //queenside
 			castlingRemove[toMove] |= 1U;
 		}
@@ -112,7 +112,7 @@ private: void check_for_castle(Move& move) {
 			castlingRemove[toMove] |= 1U << 1;
 		}
 	}
-	if (move.pieceCapture == rook) { //rook capture
+	if (move.pieceCapture == rook) { //rook capture so can no longer castle whenever
 		if (move.endPos == 0 + 56 * toNotMove) { //queenside
 			castlingRemove[toNotMove] |= 1U;
 		}
@@ -120,21 +120,21 @@ private: void check_for_castle(Move& move) {
 			castlingRemove[toNotMove] |= 1U << 1;
 		}
 	}
-	change_zobrist_multiple_castle(0, castling[0] & castlingRemove[0]);
-	change_zobrist_multiple_castle(1, castling[1] & castlingRemove[1]);
-	castling[0] &= ~(castlingRemove[0]);
+	change_zobrist_multiple_castle(0, castling[0] & castlingRemove[0]); //These lines change castling rights
+	change_zobrist_multiple_castle(1, castling[1] & castlingRemove[1]); 
+	castling[0] &= ~(castlingRemove[0]); 
 	castling[1] &= ~(castlingRemove[1]);
 }
 
-	private: void change_turn() {
+	private: void change_turn() { //Swaps which colur is playing
 		toNotMove = toMove;
 		toMove ^= 1;
 		zobristKey ^= zobrist.turn;
 	}
 
-	private: void check_for_en_passant(Move &move) {
+	private: void check_for_en_passant(Move &move) { //Check if pawn moves affects en passants or performs some en passant 
 		move.enPassantBefore = enPassant;
-		if (move.enPassant) {
+		if (move.enPassant) { //If move is en passant it removes the taken piece
 			if (toMove == 0) {
 				remove_piece(pawn, enPassant - 8, toNotMove);
 			}
@@ -145,7 +145,7 @@ private: void check_for_castle(Move& move) {
 			enPassant = 0;
 			return;
 		}
-		else if (move.pieceType == pawn && abs(move.startPos - move.endPos) == 16) {
+		else if (move.pieceType == pawn && abs(move.startPos - move.endPos) == 16) { //Makes en passant possible for next move
 			int sqr = move.endPos + (move.startPos - move.endPos) / 2;
 			change_zobrist_enPassant(enPassant);
 			enPassant = sqr;
@@ -157,28 +157,28 @@ private: void check_for_castle(Move& move) {
 		}
 	}
 
-	public : void make_move(Move &move) {
+	public : void make_move(Move &move) { //Performs moves
 		check_for_castle(move);
 		check_for_en_passant(move);
-		if (move.pieceCapture != 0 && !(move.enPassant)) {
+		if (move.pieceCapture != 0 && !(move.enPassant)) { //If there was a capture then it removes the piece
 			remove_piece(move.pieceCapture, move.endPos, toNotMove);
 		}
-		if (move.promoPiece == 0) {
+		if (move.promoPiece == 0) { //Moves the piece if it is not promotion
 			move_piece(move.pieceType, move.startPos, move.endPos, toMove);
 		}
-		else {
+		else {	//If there is promotion then removes old piece and adds new one
 			remove_piece(move.pieceType, move.startPos, toMove);
 			add_piece(move.promoPiece, move.endPos, toMove);
 		}
 		change_turn();
 	}
 
-	private: void move_piece(Piece piece, int startPos, int endPos, int colour) {
+	private: void move_piece(Piece piece, int startPos, int endPos, int colour) { //Moves piece from one square to another
 		remove_piece(piece, startPos, colour);
 		add_piece(piece, endPos, colour);
 	}
 
-public: void unmake_move(Move& move) {
+public: void unmake_move(Move& move) { //undoes move
 	change_turn();
 	unmake_castling(move);
 	unmake_enPassant(move);
