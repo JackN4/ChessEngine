@@ -17,17 +17,18 @@ using namespace std;
 string engineName = "Jack's engine";
 string author = "Jack";
 
+//This is the file where the program starts and interacts with command line
 
 int main()
 {
-    Lookups lookups;
+    Lookups lookups; //Creates lookup tables
     Board board; //Create Board
-    BoardDisplay display;
-    string input;
-    bool debug = false;
-    while (true) {
-        getline(cin, input);
-        if (input == "uci") {
+    BoardDisplay display; //Creates object to display board
+    string input; //Creates string to get input
+    bool debug = false; //changes debug mode to show more move
+    while (true) { //Runs until program ends
+        getline(cin, input); //Get user input
+        if (input == "uci") { //Prints engine info
             cout << "id name" << engineName << "\n";
             cout << "id author" << author << "\n";
             cout << "uciok" << "\n";
