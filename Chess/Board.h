@@ -182,7 +182,7 @@ public: void unmake_move(Move& move) { //undoes move
 	change_turn();
 	unmake_castling(move);
 	unmake_enPassant(move);
-	if (move.promoPiece == 0) {
+	if (move.promoPiece == 0) {//If no promotion then piece is moved back
 		move_piece(move.pieceType, move.endPos, move.startPos, toMove);
 	}
 	else {
