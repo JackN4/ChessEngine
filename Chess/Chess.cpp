@@ -115,10 +115,10 @@ int main()
             int score = evaluator.eval(board);
             cout << "eval: " << score << "\n";
         }
-        else if (input.rfind("go", 0) == 0) {
+        else if (input.rfind("go", 0) == 0) { //Finds best move
             Search search;
-            Move bestMove = search.negamax_start(board);
-            cout << "bestmove " << bestMove.move_to_lerf() << "\n";
+            Move bestMove = search.negamax_iter(board); //Searchs for best  move
+            cout << "bestmove " << bestMove.move_to_lerf() << "\n"; //Outputs best move
         }
         else if (input == "zobrist") { //Outputs current zobrist key
             cout << (board.zobristKey) << "\n";
