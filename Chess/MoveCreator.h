@@ -6,16 +6,18 @@
 using std::pair;
 using std::vector;
 
+//This file generates moves given a board
+
 using function = uint64_t(MoveBBCreator::*)(int, uint64_t, uint64_t);
 
 
-const uint64_t allSet = 0xffffffffffffffff;
+const uint64_t allSet = 0xffffffffffffffff; //BB with all 1s
 
-struct Pinned
+struct Pinned //This structure stores all neccessary information about a pinned piece
 {
-	Piece pieceType;
-	int pinnedPos, attackerPos;
-	uint64_t pinBB;
+	Piece pieceType; //Type of piece
+	int pinnedPos, attackerPos; //The position of the pinned piece, position of attacker
+	uint64_t pinBB; //BB of pin direction
 
 	Pinned(int pieceIn, int pinnnedIn, int attackerIn, uint64_t pinBBIn) {
 		pieceType = (Piece)pieceIn;
@@ -30,50 +32,50 @@ struct Pinned
 
 class MoveCreator {
 public: Board board;
-	  vector<Move> nonCap, capture;
+	  vector<Move> nonCap, capture; //Creates 2 vectors for storing moves so they dont have to be seperate after generation
 	  BitOperations bitOp;
 	  MoveBBCreator bbCreator;
 	  vector<Pinned> pinnedPieces;
-	  int checkers = 0;
-	  uint64_t checkingBB = 0;
-	  uint64_t pinnedBB = 0;
-	  uint64_t ownColourBB = 0, oppColourBB = 0, allBB = 0;
-	  bool capturesOnly;
+	  int checkers = 0; //How many pieces are checking the king
+	  uint64_t checkingBB = 0; //Where they are checking the king from
+	  uint64_t pinnedBB = 0; //Where pieces are pinned
+	  uint64_t ownColourBB = 0, oppColourBB = 0, allBB = 0; //Useful bitboards
+	  bool capturesOnly; //If we are only search for captures (during quiescence search)
 	  bool debug;
 
 
 public: MoveCreator(Board boardIn) {
-	board = boardIn;
+	board = boardIn; //Takes board on creation and stores it
 }
 
-private: void setup() {
-	nonCap.clear();
+private: void setup() { //Sets up variables at the start of every generation
+	nonCap.clear(); //Clears vectors
 	capture.clear();
 	pinnedPieces.clear();
-	checkers = 0;
+	checkers = 0; //Resets vars
 	checkingBB = 0;
 	pinnedBB = 0;
 	allBB = board.get_all_BB();
 	ownColourBB = board.bitboards[board.toMove];
 	oppColourBB = board.bitboards[board.toNotMove];
-	setup_check_pinned(board.toMove);
+	setup_check_pinned(board.toMove); //Finds pinned pieces
 }
 
-public: vector<Move> get_q_moves() {
+public: vector<Move> get_q_moves() { //Just gets captures for q search
 	setup();
 	capturesOnly = true;
 	return get_moves();
 }
 
-public: vector<Move> get_all_moves() {
+public: vector<Move> get_all_moves() { //Gets all moves
 	return get_all_moves(false);
 }
 
 public: vector<Move> get_all_moves(bool debugIn) {
-	setup();
+	setup(); //Sets up
 	capturesOnly = false;
 	debug = debugIn;
-	if (debug) {
+	if (debug) { //Used for debug purposes
 		cout << "checkers: " << checkers << "\n";
 		cout << "checking: " << checkingBB << "\n";
 		cout << "wKing: " << board.get_piece_BB(white, king) << "\n";
@@ -86,18 +88,18 @@ public: vector<Move> get_all_moves(bool debugIn) {
 }
 
 private: vector<Move> get_moves() {
-	if (debug) {
+	if (debug) { //Debug purposed
 		cout << capturesOnly << "\n";
 	}
-	if (checkers == 2) {
+	if (checkers == 2) { //MAYBE CHANGE to >= 2 //If there are 2 or more checkers then only the king can move
 		get_king_moves();
 	}
 	else {
-		get_pinned_moves();
-		get_non_pinned_moves();
+		get_pinned_moves(); //Get moves for pinned pieces
+		get_non_pinned_moves(); //Get moves for non-pinned pieces
 	}
-	vector<Move> winning, equal, losing;
-	for (Move& move : capture) {
+	vector<Move> winning, equal, losing; //Sorts captures into winning or losing capture
+	for (Move& move : capture) { //NEED to change as losing move may not be neccasirily losing
 		if (move.pieceType < move.pieceCapture) {
 			winning.push_back(move);
 		}
@@ -111,7 +113,7 @@ private: vector<Move> get_moves() {
 	nonCap.insert(nonCap.begin(), losing.begin(), losing.end());
 	nonCap.insert(nonCap.begin(), equal.begin(), equal.end());
 	nonCap.insert(nonCap.begin(), winning.begin(), winning.end());
-	return nonCap;
+	return nonCap; //Compiles all moves into 1 vector with the best captures first
 }
 
 	   /*private: bool capture_winning(Move& move) {
