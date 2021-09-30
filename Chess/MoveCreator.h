@@ -8,7 +8,7 @@ using std::vector;
 
 //This file generates moves given a board
 
-using function = uint64_t(MoveBBCreator::*)(int, uint64_t, uint64_t);
+using function = uint64_t(MoveBBCreator::*)(int, uint64_t, uint64_t); //Allows different functions to take the same variables
 
 
 const uint64_t allSet = 0xffffffffffffffff; //BB with all 1s
@@ -160,10 +160,10 @@ private: vector<Move> get_moves() {
 
 
 
-private: void get_pinned_moves() {
+private: void get_pinned_moves() { //Gets all pinned moves
 	for (Pinned& pinnedP : pinnedPieces) {
-		pinnedBB |= (1ULL << pinnedP.pinnedPos);
-		if (pinnedP.pieceType == pawn) {
+		pinnedBB |= (1ULL << pinnedP.pinnedPos); //Adds to pinned piece to pinned BB
+		if (pinnedP.pieceType == pawn) { //Deals with pawns and other pieces seperately
 			get_pinned_pawn(pinnedP);
 		}
 		else {
@@ -174,9 +174,9 @@ private: void get_pinned_moves() {
 
 
 
-private: void get_pinned_other(Pinned& pinnedP) {
+private: void get_pinned_other(Pinned& pinnedP) { //Gets pinned moves for pinned pieces which aren't pawns
 	function get_BB = &MoveBBCreator::get_knight_BB; // just placeholder value
-	switch (pinnedP.pieceType) {
+	switch (pinnedP.pieceType) { //Choose the correct function for the piece
 	case knight:
 		get_BB = &MoveBBCreator::get_knight_BB;
 		break;
@@ -191,15 +191,15 @@ private: void get_pinned_other(Pinned& pinnedP) {
 		break;
 	}
 	Piece pieceCaptured;
-	uint64_t movesBB = ((bbCreator.*get_BB)(pinnedP.pinnedPos, allBB, ownColourBB) & checkingBB) & pinnedP.pinBB;
+	uint64_t movesBB = ((bbCreator.*get_BB)(pinnedP.pinnedPos, allBB, ownColourBB) & checkingBB) & pinnedP.pinBB; //This finds moves that pinned pieces can make
 	int endPos;
-	pair<int*, int> fullScan = bitOp.full_bitscan(bbCreator.get_attacks(movesBB, oppColourBB));
-	for (int i = 0; i < fullScan.second; i++) {
+	pair<int*, int> fullScan = bitOp.full_bitscan(bbCreator.get_attacks(movesBB, oppColourBB));//splits the BB in seperate moves
+	for (int i = 0; i < fullScan.second; i++) { //Adds capture moves to list
 		endPos = fullScan.first[i];
 		pieceCaptured = board.get_piece_from_pos(endPos);
 		capture.emplace_back(Move(pinnedP.pieceType, pinnedP.pinnedPos, endPos, pieceCaptured));
 	}
-	if (!capturesOnly) {
+	if (!capturesOnly) { //Adds non capture moves to list
 		fullScan = bitOp.full_bitscan(bbCreator.get_quiet(movesBB, oppColourBB));
 		for (int i = 0; i < fullScan.second; i++) {
 			nonCap.emplace_back(Move(pinnedP.pieceType, pinnedP.pinnedPos, fullScan.first[i]));
@@ -208,19 +208,8 @@ private: void get_pinned_other(Pinned& pinnedP) {
 
 }
 
-
-
-private: void get_non_pinned_moves() {
-	get_unpinned_pawn_moves();
-	get_other_piece_moves(knight, &MoveBBCreator::get_knight_BB);
-	get_other_piece_moves(bishop, &MoveBBCreator::get_bishop_BB);
-	get_other_piece_moves(rook, &MoveBBCreator::get_rook_BB);
-	get_other_piece_moves(queen, &MoveBBCreator::get_queen_BB);
-	get_king_moves();
-}
-
-private: void setup_check_pinned(int colour) { //return attacking rays, return rays that are pinning pieces alongside pieces
-	int kingPos = bitOp.lsb_bitscan(board.get_piece_BB((Piece)colour, king));
+private: void setup_check_pinned(int colour) { //Finds pinned pieces
+	int kingPos = bitOp.lsb_bitscan(board.get_piece_BB((Piece)colour, king)); //Get position of king
 	Piece oppColour = (Piece)(colour ^ 1);
 	checkingBB |= (bbCreator.get_knight_BB_empty(kingPos) & board.get_piece_BB(oppColour, knight)); //knight attacks
 	if (checkingBB != 0) { // not sure if IF needed
@@ -238,6 +227,15 @@ private: void setup_check_pinned(int colour) { //return attacking rays, return r
 	if (checkers == 0) {
 		checkingBB = allSet;
 	}
+}
+
+private: void get_non_pinned_moves() { //Gets all moves for non-pinned pieces
+	get_unpinned_pawn_moves();
+	get_other_piece_moves(knight, &MoveBBCreator::get_knight_BB);
+	get_other_piece_moves(bishop, &MoveBBCreator::get_bishop_BB);
+	get_other_piece_moves(rook, &MoveBBCreator::get_rook_BB);
+	get_other_piece_moves(queen, &MoveBBCreator::get_queen_BB);
+	get_king_moves(); //
 }
 
 	   //can be improved, made branchless
