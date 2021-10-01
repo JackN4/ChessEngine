@@ -7,10 +7,12 @@
 #include <fstream>
 using namespace std::chrono;
 
+//This file is used to test the accuracy and speed of move generation and make moves
 class Perft
 {
-public: uint64_t calculate_perft_bulk(Board board, int depth, bool debug, bool print = true) {
-	MoveCreator moveGen = MoveCreator(board);
+	
+public: uint64_t calculate_perft_bulk(Board board, int depth, bool debug, bool print = true) { //Calculates perft with bulk counting (so it doesn't make and unmake all the moves)
+	MoveCreator moveGen = MoveCreator(board);    //Generates all moves for the current board
 	vector<Move> moves = moveGen.get_all_moves();
 	BoardDisplay display;
 	uint64_t total = 0;
