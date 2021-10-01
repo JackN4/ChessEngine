@@ -360,108 +360,59 @@ private: bool can_kingside_castle(int castling) { //Same as above but for kingsi
 }
 
 private: void get_other_piece_moves(Piece piece, function get_BB) { //Gets moves for non-king and non-pawn pieces
-	uint64_t pieceBB = board.get_piece_BB((Piece)board.toMove, piece) & ~pinnedBB;
+	uint64_t pieceBB = board.get_piece_BB((Piece)board.toMove, piece) & ~pinnedBB;//Gets BB of specific piece
 	uint64_t allMovesBB;
 	Piece pieceCaptured;
-	pair<int*, int> fullScan1 = bitOp.full_bitscan(pieceBB);
+	pair<int*, int> fullScan1 = bitOp.full_bitscan(pieceBB); //Gets position of all the pieces
 	int pos;
 	int endPos;
-	for (int i = 0; i < fullScan1.second; i++) {
-		pos = fullScan1.first[i];
-		allMovesBB = (bbCreator.*get_BB)(pos, allBB, ownColourBB) & checkingBB;
-		pair<int*, int> fullScan2 = bitOp.full_bitscan(bbCreator.get_attacks(allMovesBB, oppColourBB));
+	for (int i = 0; i < fullScan1.second; i++) {//Iterates throguh each piece
+		pos = fullScan1.first[i]; //Gets pos of the piece
+		allMovesBB = (bbCreator.*get_BB)(pos, allBB, ownColourBB) & checkingBB; //Gets all possible moves for this piece using the current function
+		pair<int*, int> fullScan2 = bitOp.full_bitscan(bbCreator.get_attacks(allMovesBB, oppColourBB)); //Finds all captured piece
 		for (int j = 0; j < fullScan2.second; j++) {
-			endPos = fullScan2.first[j];
+			endPos = fullScan2.first[j]; 
 			pieceCaptured = board.get_piece_from_pos(endPos);
-			capture.emplace_back(Move(piece, pos, endPos, pieceCaptured));
+			capture.emplace_back(Move(piece, pos, endPos, pieceCaptured)); //Adds to the capture list
 		}
 		if (!capturesOnly) {
-			fullScan2 = bitOp.full_bitscan(bbCreator.get_quiet(allMovesBB, oppColourBB));
+			fullScan2 = bitOp.full_bitscan(bbCreator.get_quiet(allMovesBB, oppColourBB)); //Finds all non-capture moves
 			for (int j = 0; j < fullScan2.second; j++) {
-				nonCap.emplace_back(Move(piece, pos, fullScan2.first[j]));
+				nonCap.emplace_back(Move(piece, pos, fullScan2.first[j])); //Adds non captures to the list
 			}
 		}
 	}
 }
 
-private: void get_pinned_pawn(Pinned pinnedPawn) {
-	uint64_t attackerBB = (1ULL << pinnedPawn.attackerPos);
-	get_pawn_moves((1ULL << pinnedPawn.pinnedPos), pinnedPawn.pinBB ^ attackerBB, attackerBB);
+private: void get_pinned_pawn(Pinned pinnedPawn) { //Finds moves for pinned pawns
+	uint64_t attackerBB = (1ULL << pinnedPawn.attackerPos); //Puts the attacker on a BB
+	get_pawn_moves((1ULL << pinnedPawn.pinnedPos), pinnedPawn.pinBB ^ attackerBB, attackerBB); //Gets move for pawn with it only being able to take the attacker or move in its direction
+}
+	
+private: void get_unpinned_pawn_moves() { //Gets moves for all unpinned pawns
+	get_pawn_moves(board.get_piece_BB(board.toMove, pawn) & ~pinnedBB, ~allBB, oppColourBB);
 }
 
 
-private: void pawn_quietBB_to_moves(uint64_t moveBB, int diff) {//do promo in here
-	moveBB &= checkingBB;
 
-	pair<uint64_t, uint64_t> promos = bbCreator.get_promo_BB(moveBB);
-	pair<int*, int> fullScan = bitOp.full_bitscan(promos.first);
-	if (debug) {
-		cout << "pawnsProm: " << promos.first << "\n";
-		cout << "checking: " << checkingBB << "\n";
-		cout << "pawnCount: " << fullScan.second << "\n";
-	}
-	int pos;
-	for (int i = 0; i < fullScan.second; i++) {
-		pos = fullScan.first[i];
-		nonCap.emplace_back(Move(pawn, pos + diff, pos));
-	}
-	fullScan = bitOp.full_bitscan(promos.second);
-	for (int i = 0; i < fullScan.second; i++) {
-		pos = fullScan.first[i];
-		for (int j = 3; j < 7; j++) {
-			nonCap.emplace_back(Move(pawn, pos + diff, pos, white, 0, (Piece)j));
-		}
-	}
-}
-
-private: void pawn_captureBB_to_moves(uint64_t moveBB, int diff) {//do promo in here
-	moveBB &= checkingBB;
-	pair<uint64_t, uint64_t> promos = bbCreator.get_promo_BB(moveBB);
-	pair<int*, int> fullScan = bitOp.full_bitscan(promos.first);
-	int pos;
-	for (int i = 0; i < fullScan.second; i++) {
-		pos = fullScan.first[i];
-		capture.emplace_back(Move(pawn, pos + diff, pos, board.get_piece_from_pos(pos)));
-	}
-	fullScan = bitOp.full_bitscan(promos.second);
-	for (int i = 0; i < fullScan.second; i++) {
-		pos = fullScan.first[i];
-		for (int j = 3; j < 7; j++) {
-			capture.emplace_back(Move(pawn, pos + diff, pos, board.get_piece_from_pos(pos), 0, (Piece)j));
-		}
-	}
-}
-
-private: void pawn_enPassantBB_to_moves(uint64_t moveBB, int diff) {//do promo in here
-	pair<int*, int> fullScan = bitOp.full_bitscan(moveBB);
-	int pos;
-	for (int i = 0; i < fullScan.second; i++) {
-		pos = fullScan.first[i];
-		int startPos = pos + diff;
-		if (!(check_after_enpassant(startPos))) {
-			capture.emplace_back(Move(pawn, pos + diff, pos, pawn, 0, white, board.enPassant));
-		}
-	}
-}
-
-private: void get_pawn_moves(uint64_t pawnBB, uint64_t emptyBB, uint64_t oppBB) { //rename
-	if (board.toMove == 0) {
-		pair<uint64_t, uint64_t> captureBBs = bbCreator.get_white_pawn_attack(pawnBB, oppBB);
-		pawn_captureBB_to_moves(captureBBs.first, -7);
-		pawn_captureBB_to_moves(captureBBs.second, -9);
-		if (!capturesOnly) {
+private: void get_pawn_moves(uint64_t pawnBB, uint64_t emptyBB, uint64_t oppBB) { //Generates pawn moves given a BB of pawns, a BB of availiable empty squares and a BB of opponent pieces
+	if (board.toMove == 0) { //White and black moves are generate seperately as pawns move in different directions so it is faster to generate seperately
+		pair<uint64_t, uint64_t> captureBBs = bbCreator.get_white_pawn_attack(pawnBB, oppBB); //Gets a BB of all pawn captures
+		pawn_captureBB_to_moves(captureBBs.first, -7); //Left hand captures
+		pawn_captureBB_to_moves(captureBBs.second, -9); //Right hand captures
+		if (!capturesOnly) { //Generate non captures
 			pair<uint64_t, uint64_t> quietBBs = bbCreator.get_white_pawn_quiet(pawnBB, emptyBB);
-			pawn_quietBB_to_moves(quietBBs.first, -8);
-			pawn_quietBB_to_moves(quietBBs.second, -16);
-			if (board.enPassant != 0) {
-				pair<uint64_t, uint64_t> enPassant = bbCreator.get_white_pawn_attack(pawnBB, (1ULL << board.enPassant));
-				pawn_enPassantBB_to_moves(enPassant.first & emptyBB, -7);
-				pawn_enPassantBB_to_moves(enPassant.second & emptyBB, -9);
+			pawn_quietBB_to_moves(quietBBs.first, -8); //Moves 1 square
+			pawn_quietBB_to_moves(quietBBs.second, -16); //Moves 2 squares
+			if (board.enPassant != 0) { //TODO: Bring out of outer if statement //Generate enPassant moves
+				pair<uint64_t, uint64_t> enPassant = bbCreator.get_white_pawn_attack(pawnBB, (1ULL << board.enPassant)); //Finds if pawn can attack the possible en passant square
+				pawn_enPassantBB_to_moves(enPassant.first & emptyBB, -7); //Left hand
+				pawn_enPassantBB_to_moves(enPassant.second & emptyBB, -9); //Right hand
 			}
 		}
 	}
 	else
-	{
+	{ //Same as above but for black so opposite direction
 		pair<uint64_t, uint64_t> captureBBs = bbCreator.get_black_pawn_attack(pawnBB, oppBB);
 		pawn_captureBB_to_moves(captureBBs.first, 9);
 		pawn_captureBB_to_moves(captureBBs.second, 7);
@@ -481,32 +432,73 @@ private: void get_pawn_moves(uint64_t pawnBB, uint64_t emptyBB, uint64_t oppBB) 
 	}
 }
 
+private: void pawn_quietBB_to_moves(uint64_t moveBB, int diff) {//Given a bitboard of moves and the direction they moved this generates the moves and adds them to list
+	moveBB &= checkingBB; //Can only move on 1s on Checking bitboard
 
-private: void get_unpinned_pawn_moves() {
-	get_pawn_moves(board.get_piece_BB(board.toMove, pawn) & ~pinnedBB, ~allBB, oppColourBB);
+	pair<uint64_t, uint64_t> promos = bbCreator.get_promo_BB(moveBB);//Gets if piece is being promoted
+	pair<int*, int> fullScan = bitOp.full_bitscan(promos.first);
+	int pos;
+	for (int i = 0; i < fullScan.second; i++) { //Adds moves that aren't promotions to list
+		pos = fullScan.first[i];
+		nonCap.emplace_back(Move(pawn, pos + diff, pos));
+	}
+	fullScan = bitOp.full_bitscan(promos.second);
+	for (int i = 0; i < fullScan.second; i++) { //Adds promotion to list, allowing promotion to every possible promotion piece
+		pos = fullScan.first[i];
+		for (int j = 3; j < 7; j++) {
+			nonCap.emplace_back(Move(pawn, pos + diff, pos, white, 0, (Piece)j));
+		}
+	}
 }
 
+private: void pawn_captureBB_to_moves(uint64_t moveBB, int diff) {//Given BB of possible capture moves and direction it adds the move to list
+	moveBB &= checkingBB;
+	pair<uint64_t, uint64_t> promos = bbCreator.get_promo_BB(moveBB); //Gets moves that are promotions
+	pair<int*, int> fullScan = bitOp.full_bitscan(promos.first);
+	int pos;
+	for (int i = 0; i < fullScan.second; i++) { //Generates and adds non-promotions to list
+		pos = fullScan.first[i];
+		capture.emplace_back(Move(pawn, pos + diff, pos, board.get_piece_from_pos(pos)));
+	}
+	fullScan = bitOp.full_bitscan(promos.second); //Generates and adds promotion to list
+	for (int i = 0; i < fullScan.second; i++) {
+		pos = fullScan.first[i];
+		for (int j = 3; j < 7; j++) {
+			capture.emplace_back(Move(pawn, pos + diff, pos, board.get_piece_from_pos(pos), 0, (Piece)j));
+		}
+	}
+}
 
+private: void pawn_enPassantBB_to_moves(uint64_t moveBB, int diff) {//Given a BB of possible en passant and the direction, generates and adds to list
+	pair<int*, int> fullScan = bitOp.full_bitscan(moveBB); //Finds position of all moves
+	int pos;
+	for (int i = 0; i < fullScan.second; i++) {
+		pos = fullScan.first[i];
+		int startPos = pos + diff;
+		if (!(check_after_enpassant(startPos))) {
+			capture.emplace_back(Move(pawn, pos + diff, pos, pawn, 0, white, board.enPassant)); //Adds to list with en passant at the boards cuurent en passant square
+		}
+	}
+}
 
-
-
-private: bool check_after_enpassant(int startPos) {
-	int enPassantC;
+private: bool check_after_enpassant(int startPos) { //Finds if king is in check after an en passant (as this would break pinned pieces if it didn't exist)
+	//Start pos is the position of the pawn before en passant
+	int enPassantC; //Represents the square where the pawn that will be taken is
 	if (board.toMove == 0) {
 		enPassantC = board.enPassant - 8;
 	}
 	else {
 		enPassantC = board.enPassant + 8;
 	}
-	uint64_t newBB = (allBB | 1ULL << board.enPassant) & ~((1ULL << enPassantC) | (1ULL << startPos));
-	int kingPos = bitOp.lsb_bitscan(board.get_piece_BB((Piece)board.toMove, king));
+	uint64_t newBB = (allBB | 1ULL << board.enPassant) & ~((1ULL << enPassantC) | (1ULL << startPos)); //Creates a new BB with the piece removed and the pawn moved to its new square
+	int kingPos = bitOp.lsb_bitscan(board.get_piece_BB((Piece)board.toMove, king)); //Finds position of king
 	int moves[4] = { 0,2,4,6 }; // diagonals
-	uint64_t diagAttackers = board.get_piece_BB(board.toNotMove, queen) | board.get_piece_BB(board.toNotMove, bishop);
+	uint64_t diagAttackers = board.get_piece_BB(board.toNotMove, queen) | board.get_piece_BB(board.toNotMove, bishop); //Finds if any new diagonal pieces are attacking knd
 	if (bbCreator.any_attackers(moves, diagAttackers, kingPos, newBB)) {
 		return true;
 	}
 	int moves2[4] = { 1,3,5,7 }; //straights
-	uint64_t straightAttackers = board.get_piece_BB(board.toNotMove, queen) | board.get_piece_BB(board.toNotMove, rook);
+	uint64_t straightAttackers = board.get_piece_BB(board.toNotMove, queen) | board.get_piece_BB(board.toNotMove, rook); //Finds if there are new orthoonal pieces attacking the king
 	if (bbCreator.any_attackers(moves2, straightAttackers, kingPos, newBB)) {
 		return true;
 	}
