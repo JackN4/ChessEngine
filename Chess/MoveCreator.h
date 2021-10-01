@@ -37,7 +37,7 @@ public: Board board;
 	  MoveBBCreator bbCreator;
 	  vector<Pinned> pinnedPieces;
 	  int checkers = 0; //How many pieces are checking the king
-	  uint64_t checkingBB = 0; //Where they are checking the king from
+	  uint64_t checkingBB = 0; //Shows where pieces can move when the king is in check
 	  uint64_t pinnedBB = 0; //Where pieces are pinned
 	  uint64_t ownColourBB = 0, oppColourBB = 0, allBB = 0; //Useful bitboards
 	  bool capturesOnly; //If we are only search for captures (during quiescence search)
@@ -208,24 +208,24 @@ private: void get_pinned_other(Pinned& pinnedP) { //Gets pinned moves for pinned
 
 }
 
-private: void setup_check_pinned(int colour) { //Finds pinned pieces
+private: void setup_check_pinned(int colour) { //Finds if kings is in check and if there are pinned pieces
 	int kingPos = bitOp.lsb_bitscan(board.get_piece_BB((Piece)colour, king)); //Get position of king
 	Piece oppColour = (Piece)(colour ^ 1);
-	checkingBB |= (bbCreator.get_knight_BB_empty(kingPos) & board.get_piece_BB(oppColour, knight)); //knight attacks
-	if (checkingBB != 0) { // not sure if IF needed
+	checkingBB |= (bbCreator.get_knight_BB_empty(kingPos) & board.get_piece_BB(oppColour, knight)); //Finds if any knights attacking king
+	if (checkingBB != 0) { //Adds number of knights attacking king checkers
 		checkers += bitOp.pop_count(checkingBB);
 	}
 	int moves[4] = { 0,2,4,6 }; // diagonals
-	uint64_t diagAttackers = board.get_piece_BB(oppColour, queen) | board.get_piece_BB(oppColour, bishop); //diagonal attacks
-	get_all_attackers_pinned(moves, diagAttackers, kingPos, colour);
-	int moves2[4] = { 1,3,5,7 }; //straights
-	uint64_t straightAttackers = board.get_piece_BB(oppColour, queen) | board.get_piece_BB(oppColour, rook);
-	get_all_attackers_pinned(moves2, straightAttackers, kingPos, colour);
-	uint64_t pawnAttacks = bbCreator.get_king_pawn_attack_BB(kingPos, colour) & board.get_piece_BB(oppColour, pawn);
+	uint64_t diagAttackers = board.get_piece_BB(oppColour, queen) | board.get_piece_BB(oppColour, bishop); //Gets BB of diagonal attackers
+	get_sliding_attackers_pinned(moves, diagAttackers, kingPos, colour); //Checks if any pieces are diagonally attacking king
+	int moves2[4] = { 1,3,5,7 }; //Orthogonal
+	uint64_t straightAttackers = board.get_piece_BB(oppColour, queen) | board.get_piece_BB(oppColour, rook); //Gets BB of orthogonal attackers
+	get_sliding_attackers_pinned(moves2, straightAttackers, kingPos, colour); //Checks if any pieces are orthogonally attacking king
+	uint64_t pawnAttacks = bbCreator.get_king_pawn_attack_BB(kingPos, colour) & board.get_piece_BB(oppColour, pawn); //Gets if any pawns are attacking king
 	checkingBB |= pawnAttacks;
-	checkers += bitOp.pop_count(pawnAttacks);
+	checkers += bitOp.pop_count(pawnAttacks); //Adds number of attacking pawns to checkers
 	if (checkers == 0) {
-		checkingBB = allSet;
+		checkingBB = allSet; //If there are no pieces attacking the king all pieces can move somewhere
 	}
 }
 
@@ -238,56 +238,57 @@ private: void get_non_pinned_moves() { //Gets all moves for non-pinned pieces
 	get_king_moves(); //
 }
 
-	   //can be improved, made branchless
-private: void get_all_attackers_pinned(int* moves, uint64_t attackers, int kingPos, int colour) {//returns a bitboard of rays attacking king and list of pinned pieces and direction they are pinned
+	
+private: void get_sliding_attackers_pinned(int* moves, uint64_t attackers, int kingPos, int colour) {//Finds if king is in check from sliding pieces or if there are pinned pieces
 	uint64_t blockersBB;
 	uint64_t rayBB;
 	uint64_t pinnedBB;
 	int blockerPos;
 	int blockerPos2;
 	for (int i = 0; i < 4; i++) {
-		rayBB = bbCreator.lookup.slideMoves[kingPos][moves[i]];
-		blockersBB = rayBB & allBB;
-		if (blockersBB != 0) {
-			blockerPos = bbCreator.get_blocker_pos(blockersBB, moves[i]);
-			if (((board.bitboards[colour]) & (1ULL << blockerPos)) != 0) {
-				blockersBB -= 1ULL << blockerPos;
-				if (blockersBB != 0) {
-					blockerPos2 = bbCreator.get_blocker_pos(blockersBB, moves[i]);
-					if (((1ULL << blockerPos2) & attackers) != 0) {
-						pinnedBB = (bbCreator.lookup.slideMoves[blockerPos2][moves[i]] ^ bbCreator.lookup.slideMoves[kingPos][moves[i]]); //line can be done better using the direction value to get the pos for the ray to xor
+		rayBB = bbCreator.lookup.slideMoves[kingPos][moves[i]]; //Gets ray from king position in all directions give in moves
+		blockersBB = rayBB & allBB; //Finds pieces along the ray
+		if (blockersBB != 0) { //If there are blockers
+			blockerPos = bbCreator.get_blocker_pos(blockersBB, moves[i]); //Finds the position of the closest blocker
+			if (((board.bitboards[colour]) & (1ULL << blockerPos)) != 0) { //If blocker is of current turns colour (so it could be pinned)
+				blockersBB -= 1ULL << blockerPos; //Removes the first blocker
+				if (blockersBB != 0) { //If there is another blocker (piece along the ray)
+					blockerPos2 = bbCreator.get_blocker_pos(blockersBB, moves[i]); //Gets position of second blocker
+					if (((1ULL << blockerPos2) & attackers) != 0) { //If 2nd blocker is an attacker, the 1st blocker will be pinned
+						//This puts all the info about the pinned piece in an object then adds to vector of pinned pieces 
+						pinnedBB = (bbCreator.lookup.slideMoves[blockerPos2][moves[i]] ^ bbCreator.lookup.slideMoves[kingPos][moves[i]]); 
 						pinnedPieces.emplace_back(Pinned(board.get_piece_from_pos(blockerPos), blockerPos, blockerPos2, pinnedBB));
 					}
 				}
 			}
-			else if (((1ULL << blockerPos) & attackers) != 0) {
-				checkers++;
-				checkingBB |= (rayBB ^ bbCreator.lookup.slideMoves[blockerPos][moves[i]]);
+			else if (((1ULL << blockerPos) & attackers) != 0) { //If the first blocker is any attacker then the king is in check
+				checkers++; //Increment number of checkers
+				checkingBB |= (rayBB ^ bbCreator.lookup.slideMoves[blockerPos][moves[i]]); //Adds ray to checking BB as pieces can move onto this and block check
 			}
 		}
 	}
 }
 
-private: bool square_threatened_any(int pos) {
-	Piece oppColour = (Piece)(board.toMove ^ 1);
+private: bool square_threatened_any(int pos) { //Checks if the square at pos is under attack
+	Piece oppColour = (Piece)(board.toMove ^ 1); //Gets BB of other players pieces
 	uint64_t allBBNoKing = allBB & ~board.get_piece_BB(board.toMove, king);
-	if ((bbCreator.get_knight_BB_empty(pos) & board.get_piece_BB(oppColour, knight)) != 0) { //knight attacks
+	if ((bbCreator.get_knight_BB_empty(pos) & board.get_piece_BB(oppColour, knight)) != 0) { //Checks for knight attacks
 		return true;
 	}
-	if ((bbCreator.get_king_BB(pos, 0) & board.get_piece_BB(oppColour, king)) != 0) {
+	if ((bbCreator.get_king_BB(pos, 0) & board.get_piece_BB(oppColour, king)) != 0) { //Checks if king is attacking square
 		return true;
 	}
 	int moves[4] = { 0,2,4,6 }; // diagonals
-	uint64_t diagAttackers = board.get_piece_BB(oppColour, queen) | board.get_piece_BB(oppColour, bishop);
+	uint64_t diagAttackers = board.get_piece_BB(oppColour, queen) | board.get_piece_BB(oppColour, bishop); //Checks if there is a diagonal attack on square
 	if (bbCreator.any_attackers(moves, diagAttackers, pos, allBBNoKing)) {
 		return true;
 	}
 	int moves2[4] = { 1,3,5,7 }; //straights
-	uint64_t straightAttackers = board.get_piece_BB(oppColour, queen) | board.get_piece_BB(oppColour, rook);
+	uint64_t straightAttackers = board.get_piece_BB(oppColour, queen) | board.get_piece_BB(oppColour, rook); //Checks if there is an orthogonal attack on square
 	if (bbCreator.any_attackers(moves2, straightAttackers, pos, allBBNoKing)) {
 		return true;
 	}
-	if ((bbCreator.get_king_pawn_attack_BB(pos, board.toMove) & board.get_piece_BB(oppColour, pawn)) != 0) { // pawn attacks
+	if ((bbCreator.get_king_pawn_attack_BB(pos, board.toMove) & board.get_piece_BB(oppColour, pawn)) != 0) { //Checks if a pawn is attacking square
 		return true;
 	}
 	return false;
@@ -295,23 +296,23 @@ private: bool square_threatened_any(int pos) {
 
 
 
-private: void get_king_moves() {
-	uint64_t kingBB = board.get_piece_BB((Piece)board.toMove, king);
-	int pos = bitOp.lsb_bitscan(kingBB);
-	uint64_t allMovesBB = bbCreator.get_king_BB(pos, ownColourBB);
+private: void get_king_moves() { //Gets kings moves
+	uint64_t kingBB = board.get_piece_BB((Piece)board.toMove, king); //Gets BB with just king
+	int pos = bitOp.lsb_bitscan(kingBB); //Gets position of king
+	uint64_t allMovesBB = bbCreator.get_king_BB(pos, ownColourBB); //Gets all sqrs king can move to normally
 	Piece pieceCaptured;
-	int castling = board.castling[board.toMove];
+	int castling = board.castling[board.toMove]; //Gets castling rights
 	int endPos;
-	pair<int*, int> fullScan = bitOp.full_bitscan(bbCreator.get_attacks(allMovesBB, oppColourBB));
-	for (int i = 0; i < fullScan.second; i++) {
+	pair<int*, int> fullScan = bitOp.full_bitscan(bbCreator.get_attacks(allMovesBB, oppColourBB)); 
+	for (int i = 0; i < fullScan.second; i++) { //Iterates through all squares king can attack which are capture
 		endPos = fullScan.first[i];
-		if (!square_threatened_any(endPos)) {
-			pieceCaptured = board.get_piece_from_pos(endPos);
-			capture.emplace_back(Move(king, pos, endPos, pieceCaptured));
+		if (!square_threatened_any(endPos)) { //Checks if the king would end up in check
+			pieceCaptured = board.get_piece_from_pos(endPos); 
+			capture.emplace_back(Move(king, pos, endPos, pieceCaptured)); //Adds to list
 		}
 	}
 	if (!capturesOnly) {
-		fullScan = bitOp.full_bitscan(bbCreator.get_quiet(allMovesBB, oppColourBB));
+		fullScan = bitOp.full_bitscan(bbCreator.get_quiet(allMovesBB, oppColourBB)); //Same as above with non captures
 		for (int i = 0; i < fullScan.second; i++) {
 			endPos = fullScan.first[i];
 			if (!square_threatened_any(endPos)) {
@@ -319,11 +320,11 @@ private: void get_king_moves() {
 			}
 		}
 
-		if (checkers == 0) {
-			if (can_queenside_castle(castling)) { //queenside
+		if (checkers == 0) { //If not in check we check for castling
+			if (can_queenside_castle(castling)) { //If can queenside castle it is added to list
 				nonCap.emplace_back(Move(king, pos, pos - 2, white, 1));
 			}
-			if (can_kingside_castle(castling)) { //queenside
+			if (can_kingside_castle(castling)) { //If can kingside castle it is added to list
 				capture.emplace_back(Move(king, pos, pos + 2, white, 2));
 			}
 		}
@@ -334,19 +335,19 @@ private: void get_king_moves() {
 
 
 
-private: bool can_queenside_castle(int castling) {
-	int rowPos = 56 * board.toMove;
-	if ((castling & 1UL) == 1) {
-		if (bbCreator.sqr_empty(allBB, rowPos + 1) && bbCreator.sqr_empty(allBB, rowPos + 2) && bbCreator.sqr_empty(allBB, rowPos + 3)) {
-			if (!square_threatened_any(rowPos + 2) && !square_threatened_any(rowPos + 3)) {
-				return true;
+private: bool can_queenside_castle(int castling) { //Checks if king can queenside castle
+	int rowPos = 56 * board.toMove; //Finds row for castling
+	if ((castling & 1UL) == 1) { //Checks castling rights
+		if (bbCreator.sqr_empty(allBB, rowPos + 1) && bbCreator.sqr_empty(allBB, rowPos + 2) && bbCreator.sqr_empty(allBB, rowPos + 3)) { //Checks if all squares between king and rook and empty
+			if (!square_threatened_any(rowPos + 2) && !square_threatened_any(rowPos + 3)) { //Checks the squares king moves across arent threatened
+				return true; //Can castle
 			}
 		}
 	}
-	return false;
+	return false; //Can't castle
 }
 
-private: bool can_kingside_castle(int castling) {
+private: bool can_kingside_castle(int castling) { //Same as above but for kingside
 	int rowPos = 56 * board.toMove;
 	if (((castling >> 1) & 1UL) == 1) {
 		if (bbCreator.sqr_empty(allBB, rowPos + 5) && bbCreator.sqr_empty(allBB, rowPos + 6)) {
@@ -358,7 +359,7 @@ private: bool can_kingside_castle(int castling) {
 	return false;
 }
 
-private: void get_other_piece_moves(Piece piece, function get_BB) {
+private: void get_other_piece_moves(Piece piece, function get_BB) { //Gets moves for non-king and non-pawn pieces
 	uint64_t pieceBB = board.get_piece_BB((Piece)board.toMove, piece) & ~pinnedBB;
 	uint64_t allMovesBB;
 	Piece pieceCaptured;
