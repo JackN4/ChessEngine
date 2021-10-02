@@ -7,45 +7,45 @@
 #include <stdint.h>
 using std::cout ;
 
-
+//This is the file that searches for the best move
  
 
 class Search
 {
-	int depthStart = 7;
-	int max = 100000;
-	Evaluator evaluator;
+	int depthStart = 7; //The specified depth to search too
+	int max = 100000; //Used as infinity
+	Evaluator evaluator; 
 
-public: Move negamax_iter(Board& board) {
+public: Move negamax_iter(Board& board) { //Performs an iterative negamax search
 	SearchTable table;
 	Move bestMove;
 	MoveCreator moveGen = MoveCreator(board);
-	for (int i = 1; i <= depthStart; i++) {
-		negamax(moveGen, i, -max, max, table);
-		cout << i << "\n";
-		print_moves(board, table, 0);
+	for (int i = 1; i <= depthStart; i++) { //Iterates 1 to depth start
+		negamax(moveGen, i, -max, max, table); //Performs negamax
+		cout << i << "\n"; //TODO:Remove this line
+		print_moves(board, table, 0); //Prints current best line of moves found
 	}
-	bestMove = moveGen.board.get_move_from_hash(table.get_entry(moveGen.board.zobristKey).second.bestMove);
-	table.delete_table();
+	bestMove = moveGen.board.get_move_from_hash(table.get_entry(moveGen.board.zobristKey).second.bestMove); //Finds best move from hash table
+	table.delete_table(); //Deletes table
 	return bestMove;
 }
 
-private: void print_moves(Board& board, SearchTable& table, int depth) {
-	pair<bool, EntrySearch> entry = table.get_entry(board.zobristKey);
-	if (entry.first) {
-		if (entry.second.bestMove.start != entry.second.bestMove.end) {
-			Move move = board.get_move_from_hash(entry.second.bestMove);
-			cout << move.move_to_lerf() << " ";
-			board.make_move(move);
-			print_moves(board, table, depth + 1);
-			board.unmake_move(move);
+private: void print_moves(Board& board, SearchTable& table, int depth) { //Prints moves from Transposition table
+	pair<bool, EntrySearch> entry = table.get_entry(board.zobristKey); //Gets current entry in transposition table
+	if (entry.first) { //If entry exists
+		if (entry.second.bestMove.start != entry.second.bestMove.end) { //If there is a valid move in entry
+			Move move = board.get_move_from_hash(entry.second.bestMove); //Gets best move from entry
+			cout << move.move_to_lerf() << " "; //Prints move
+			board.make_move(move); //Makes move
+			print_moves(board, table, depth + 1); //Calls function again
+			board.unmake_move(move); // Unmakes move
 			return;
 		}
 	}
-	cout << "  depth:" << depth << "\n";
+	cout << "  depth:" << depth << "\n"; //TODO: Remove line
 }
 
-public: Move negamax_start(MoveCreator& moveGen, SearchTable& table, int depth) {
+/*public: Move negamax_start(MoveCreator& moveGen, SearchTable& table, int depth) {
 	Move bestMove;
 	int bestScore = std::numeric_limits<int>::min();
 	int score;
@@ -61,46 +61,46 @@ public: Move negamax_start(MoveCreator& moveGen, SearchTable& table, int depth) 
 	}
 	table.add(EntrySearch(moveGen.board.zobristKey, depth, bestScore, 1, bestMove));
 	return bestMove;
-}
+}*/
 
-private: int negamax(MoveCreator &moveGen, int depth, int alpha, int beta, SearchTable &table) { 
-	pair<bool, EntrySearch> entry = table.get_entry(moveGen.board.zobristKey);
-	if (entry.first) {
-		if (entry.second.depth == depth) { // can maybe do more here
-			if (entry.second.node == 1) {
+private: int negamax(MoveCreator &moveGen, int depth, int alpha, int beta, SearchTable &table) { //Performs negamax search //TODO: allow returning scores above beta or below alpha (fail-soft)
+	pair<bool, EntrySearch> entry = table.get_entry(moveGen.board.zobristKey); //Gets entry in transposition table from key
+	if (entry.first) { //If entry exists
+		if (entry.second.depth == depth) { //TODO: can maybe do more here //If entry depth is current depth
+			if (entry.second.node == 1) { //Node was fully searched
 				return entry.second.value;
 			}
-			else if (entry.second.node == 2) {
-				if (entry.second.value > beta) {
+			else if (entry.second.node == 2) { //value is lower bound
+				if (entry.second.value > beta) { //Cut off if lower bound > beta
 					return beta;
 				}
 			}
-			else {
-				if (entry.second.value < alpha) {
+			else if(entry.second.node == 3){ //value is upper bound
+				if (entry.second.value < alpha) { //Cut off if upper bound < alpha
 					return alpha;
 				}
 			}
 		}
 	}
 	int score;
-	if (depth == 0) {
+	if (depth == 0) { //If depth is 0 an q search must be perform to make the board stable befor evaluation takes place
 		score = q_search(moveGen, alpha, beta, table);
-		table.add(EntrySearch(moveGen.board.zobristKey, 0, score, 1));
+		table.add(EntrySearch(moveGen.board.zobristKey, 0, score, 1)); //Results added to trans table
 		return score;
 	}
 	Move bestMove;
-	int bestScore = -max;
-	if (entry.first) {
-		if (entry.second.bestMove.start != entry.second.bestMove.end) {
-			Move move = moveGen.board.get_move_from_hash(entry.second.bestMove);
-			moveGen.board.make_move(move);
-			score = -(negamax(moveGen, depth - 1, -beta, -alpha, table));
-			moveGen.board.unmake_move(move);
-			if (score >= beta) {
+	int bestScore = -max; //Best score starts at -inf so it can only be improved upon
+	if (entry.first) { //If entry in table exist
+		if (entry.second.bestMove.start != entry.second.bestMove.end) { //If it has a valid best move
+			Move move = moveGen.board.get_move_from_hash(entry.second.bestMove); //Gets move from entry 
+			moveGen.board.make_move(move); //Make move
+			score = -(negamax(moveGen, depth - 1, -beta, -alpha, table)); //Performs negamax search
+			moveGen.board.unmake_move(move); //Unmakes move
+			if (score >= beta) { //Fail high
 				table.add(EntrySearch(moveGen.board.zobristKey, depth, score, 2, bestMove));
 				return beta;
 			}
-			if (score > bestScore) {
+			if (score > bestScore) { //Sets bestscore and alpha
 				bestMove = move;
 				bestScore = score;
 				if (score > alpha) {
@@ -109,27 +109,27 @@ private: int negamax(MoveCreator &moveGen, int depth, int alpha, int beta, Searc
 			}
 		}
 	}
-	vector<Move> allMoves = moveGen.get_all_moves();
-	if (allMoves.size() == 0) {
-		if (moveGen.checkers != 0) {;
-			score = -max;
+	vector<Move> allMoves = moveGen.get_all_moves(); //Generates all moves
+	if (allMoves.size() == 0) { //If there are no moves
+		if (moveGen.checkers != 0) {; //If the king is in check
+			score = -max; //Checkmate
 		}
-		else {
+		else { //If not it is stalemate
 			score = 0;
 		}
-		table.add(EntrySearch(moveGen.board.zobristKey, depth, score, 1));
+		table.add(EntrySearch(moveGen.board.zobristKey, depth, score, 1)); //Adds result to transposition table
 		return score;
 	}
 	
-	for (Move& move : allMoves) {
-		moveGen.board.make_move(move);
-		score = -(negamax(moveGen, depth - 1, -beta, -alpha, table));
-		moveGen.board.unmake_move(move);
-		if (score >= beta) {
-			table.add(EntrySearch(moveGen.board.zobristKey, depth, score, 2, bestMove));
-			return beta;
+	for (Move& move : allMoves) { //Iterates through moves
+		moveGen.board.make_move(move); //Makes move
+		score = -(negamax(moveGen, depth - 1, -beta, -alpha, table)); //Recursively calls function to get score
+		moveGen.board.unmake_move(move); //Unmakes move
+		if (score >= beta) { //Fail high
+			table.add(EntrySearch(moveGen.board.zobristKey, depth, score, 2, bestMove)); //Adds result to transposition table
+			return beta; 
 		}
-		if (score > bestScore) {
+		if (score > bestScore) { //Sets best score and alpha
 			bestMove = move;
 			bestScore = score;
 			if (score > alpha) {
@@ -137,37 +137,37 @@ private: int negamax(MoveCreator &moveGen, int depth, int alpha, int beta, Searc
 			}
 		}
 	}
-	if (bestScore == alpha) {
+	if (bestScore == alpha) { //Adds results to transposition table
 		table.add(EntrySearch(moveGen.board.zobristKey, depth, bestScore, 1, bestMove));
 	}
-	else {
+	else { 
 		table.add(EntrySearch(moveGen.board.zobristKey, depth, bestScore, 3, bestMove));
 	}
 	return alpha;
 }
 
-private: int q_search(MoveCreator& moveGen, int alpha, int beta, SearchTable& table) { //add check+checkmate - search all moves if in check
+private: int q_search(MoveCreator& moveGen, int alpha, int beta, SearchTable& table) { //TODO: add check+checkmate - search all moves if in check //This search is done after the normal search to create a stable situation on the board by just searching captures
 	int currentEval;
-	currentEval = evaluator.eval(moveGen.board); //we take the current evaluation as a lower bound
-	if (currentEval >= beta) { //if eval is higher than beta we can return beta as we know the move is too good to ever be searched
+	currentEval = evaluator.eval(moveGen.board); //We take the current evaluation as a lower bound
+	if (currentEval >= beta) { //If eval is higher than beta we can return beta as we know the move is too good to ever be searched
 		return beta;
 	}
 	if (currentEval > alpha) {
-		alpha = currentEval; // we set alpha to be the current lower bound if it is higher than alpha
+		alpha = currentEval; // We set alpha to be the current lower bound if it is higher than alpha
 	}
 	int score;
 	int bestScore = -max;
 	Move bestMove;
-	vector<Move> q_moves = moveGen.get_q_moves();
-	for (Move& move : q_moves) {
+	vector<Move> q_moves = moveGen.get_q_moves(); //Gets just captures
+	for (Move& move : q_moves) { //Iterates through moves
 		if (evaluator.vals[move.pieceCapture - 2] + currentEval > alpha - 200) { // delta pruning - check if taking pieces + 200 centipawns is bigger than alpha to see if it is worth searching
-			moveGen.board.make_move(move);
-			score = -q_search(moveGen, -beta, -alpha, table);
+			moveGen.board.make_move(move); 
+			score = -q_search(moveGen, -beta, -alpha, table); //Recursively searchs deeper
 			moveGen.board.unmake_move(move);
 			if (score >= beta) {
 				return beta; //score is high enough to prune as we know this position is too good to ever be chosen
 			}
-			if (score > bestScore) {
+			if (score > bestScore) { //Sets best score and alpha
 				bestMove = move;
 				bestScore = score;
 				if (score > alpha) {
