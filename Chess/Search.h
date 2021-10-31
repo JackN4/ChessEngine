@@ -64,21 +64,24 @@ private: void print_moves(Board& board, SearchTable& table, int depth) { //Print
 }*/
 
 private: int negamax(MoveCreator &moveGen, int depth, int alpha, int beta, SearchTable &table) { //Performs negamax search //TODO: allow returning scores above beta or below alpha (fail-soft)
+	origAlpha = alpha;
 	pair<bool, EntrySearch> entry = table.get_entry(moveGen.board.zobristKey); //Gets entry in transposition table from key
-	if (entry.first) { //If entry exists
-		if (entry.second.depth == depth) { //TODO: can maybe do more here //If entry depth is current depth
+	if (entry.first && entry.second.depth >= depth) {  //If entry depth is current depth or more
 			if (entry.second.node == 1) { //Node was fully searched
 				return entry.second.value;
 			}
 			else if (entry.second.node == 2) { //value is lower bound
-				if (entry.second.value > beta) { //Cut off if lower bound > beta
-					return beta;
+				if(entry.second.value > alpha){
+					alpha = entry.second.value;
 				}
 			}
 			else if(entry.second.node == 3){ //value is upper bound
-				if (entry.second.value < alpha) { //Cut off if upper bound < alpha
-					return alpha;
+				if(entry.second.value < beta){
+					beta = entry.second.value;	
 				}
+			}
+			if(alpha >= beta){
+				return entry.second.value;
 			}
 		}
 	}
@@ -137,7 +140,7 @@ private: int negamax(MoveCreator &moveGen, int depth, int alpha, int beta, Searc
 			}
 		}
 	}
-	if (bestScore == alpha) { //Adds results to transposition table
+	if (bestScore == alpha) { //Adds results to transposition table //TODO: mightve broken
 		table.add(EntrySearch(moveGen.board.zobristKey, depth, bestScore, 1, bestMove));
 	}
 	else { 
