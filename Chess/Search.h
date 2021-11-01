@@ -65,7 +65,7 @@ private: void print_moves(Board& board, SearchTable& table, int depth) { //Print
 }*/
 
 private: int negamax(MoveCreator &moveGen, int depth, int alpha, int beta, SearchTable &table) { //Performs negamax search //TODO: allow returning scores above beta or below alpha (fail-soft)
-	origAlpha = alpha;
+	int origAlpha = alpha;
 	pair<bool, EntrySearch> entry = table.get_entry(moveGen.board.zobristKey); //Gets entry in transposition table from key
 	if (entry.first && entry.second.depth >= depth) {  //If entry depth is current depth or more
 		if (entry.second.node == 1) { //Node was fully searched
