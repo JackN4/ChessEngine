@@ -45,6 +45,7 @@ private: void print_moves(Board& board, SearchTable& table, int depth) { //Print
 	cout << "  depth:" << depth << "\n"; //TODO: Remove line
 }
 
+	//TODO: remove this
 /*public: Move negamax_start(MoveCreator& moveGen, SearchTable& table, int depth) {
 	Move bestMove;
 	int bestScore = std::numeric_limits<int>::min();
