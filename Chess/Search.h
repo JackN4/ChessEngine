@@ -67,22 +67,21 @@ private: int negamax(MoveCreator &moveGen, int depth, int alpha, int beta, Searc
 	origAlpha = alpha;
 	pair<bool, EntrySearch> entry = table.get_entry(moveGen.board.zobristKey); //Gets entry in transposition table from key
 	if (entry.first && entry.second.depth >= depth) {  //If entry depth is current depth or more
-			if (entry.second.node == 1) { //Node was fully searched
-				return entry.second.value;
+		if (entry.second.node == 1) { //Node was fully searched
+			return entry.second.value;
+		}
+		else if (entry.second.node == 2) { //value is lower bound
+			if(entry.second.value > alpha){
+				alpha = entry.second.value;
 			}
-			else if (entry.second.node == 2) { //value is lower bound
-				if(entry.second.value > alpha){
-					alpha = entry.second.value;
-				}
+		}
+		else if(entry.second.node == 3){ //value is upper bound
+			if(entry.second.value < beta){
+				beta = entry.second.value;	
 			}
-			else if(entry.second.node == 3){ //value is upper bound
-				if(entry.second.value < beta){
-					beta = entry.second.value;	
-				}
-			}
-			if(alpha >= beta){
-				return entry.second.value;
-			}
+		}
+		if(alpha >= beta){
+			return entry.second.value;
 		}
 	}
 	int score;
