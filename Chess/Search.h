@@ -146,7 +146,7 @@ private: int negamax(MoveCreator &moveGen, int depth, int alpha, int beta, Searc
 	else { 
 		table.add(EntrySearch(moveGen.board.zobristKey, depth, bestScore, 3, bestMove));
 	}
-	return alpha;
+	return alpha; //TODO: Try to change to bestScore
 }
 
 private: int q_search(MoveCreator& moveGen, int alpha, int beta, SearchTable& table) { //TODO: add check+checkmate - search all moves if in check //This search is done after the normal search to create a stable situation on the board by just searching captures
