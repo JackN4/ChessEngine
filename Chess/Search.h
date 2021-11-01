@@ -144,9 +144,6 @@ private: int negamax(MoveCreator &moveGen, int depth, int alpha, int beta, Searc
 	if (bestScore <= origAlpha) { //Adds results to transposition table //TODO: mightve broken
 		nodeType = 3;
 	}
-	else if (bestScore > beta){
-		nodeType = 2;
-	}
 	else{
 		nodeType = 1;
 	}
