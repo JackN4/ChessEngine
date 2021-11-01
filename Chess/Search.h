@@ -140,12 +140,17 @@ private: int negamax(MoveCreator &moveGen, int depth, int alpha, int beta, Searc
 			}
 		}
 	}
-	if (bestScore == alpha) { //Adds results to transposition table //TODO: mightve broken
-		table.add(EntrySearch(moveGen.board.zobristKey, depth, bestScore, 1, bestMove));
+	int nodeType;
+	if (bestScore <= origAlpha) { //Adds results to transposition table //TODO: mightve broken
+		nodeType = 3;
 	}
-	else { 
-		table.add(EntrySearch(moveGen.board.zobristKey, depth, bestScore, 3, bestMove));
+	else if (bestScore > beta){
+		nodeType = 2;
 	}
+	else{
+		nodeType = 1;
+	}
+	table.add(EntrySearch(moveGen.board.zobristKey, depth, bestScore, nodeType, bestMove));
 	return alpha; //TODO: Try to change to bestScore
 }
 
