@@ -16,13 +16,13 @@ class Search
 	int max = 100000; //Used as infinity
 	Evaluator evaluator; 
 
-public: Move negamax_iter(Board& board) { //Performs an iterative negamax search
+public: Move negamax_iter(Board& board, int depth = 7) { //Performs an iterative negamax search
 	SearchTable table;
 	Move bestMove;
 	MoveCreator moveGen = MoveCreator(board);
-	for (int i = 1; i <= depthStart; i++) { //Iterates 1 to depth start
+	for (int i = 1; i <= depth; i++) { //Iterates 1 to depth start
 		negamax(moveGen, i, -max, max, table); //Performs negamax
-		cout << i << "\n"; //TODO:Remove this line
+		cout << "Depth:" << i << "\n";
 		print_moves(board, table, 0); //Prints current best line of moves found
 	}
 	bestMove = moveGen.board.get_move_from_hash(table.get_entry(moveGen.board.zobristKey).second.bestMove); //Finds best move from hash table
@@ -42,7 +42,7 @@ private: void print_moves(Board& board, SearchTable& table, int depth) { //Print
 			return;
 		}
 	}
-	cout << "  depth:" << depth << "\n"; //TODO: Remove line
+	cout << "\n";
 }
 
 	//TODO: remove this
@@ -92,7 +92,7 @@ private: int negamax(MoveCreator &moveGen, int depth, int alpha, int beta, Searc
 		return score;
 	}
 	Move bestMove;
-	int bestScore = -max; //Best score starts at -inf so it can only be improved upon
+	int bestScore = -(max + 1); //Best score starts at -inf so it can only be improved upon
 	if (entry.first) { //If entry in table exist
 		if (entry.second.bestMove.start != entry.second.bestMove.end) { //If it has a valid best move
 			Move move = moveGen.board.get_move_from_hash(entry.second.bestMove); //Gets move from entry 
