@@ -9,7 +9,7 @@
 #include "MoveCreator.h"
 #include "Perft.h"
 #include "Evaluator.h"
-#include "Search.h"
+#include "SearchDifficulty.h"
 
 using namespace N;
 using namespace std;
@@ -116,8 +116,17 @@ int main()
             cout << "eval: " << score << "\n";
         }
         else if (input.rfind("go", 0) == 0) { //Finds best move
-            Search search;
-            Move bestMove = search.negamax_iter(board); //Searchs for best  move
+            Move bestMove;
+            if (input.find("diff") != string::npos) { // If difficulty is specified
+                string depthStr = input.substr(8);
+                int depth = stoi(depthStr);
+                SearchDifficulty searchDiff;
+                bestMove = searchDiff.search_diff(board, depth);
+            }
+            else { //Otherwise full depth search
+                Search search;
+                bestMove = search.negamax_iter(board); //Searchs for best  move
+            }
             cout << "bestmove " << bestMove.move_to_lerf() << "\n"; //Outputs best move
         }
         else if (input == "zobrist") { //Outputs current zobrist key
