@@ -115,7 +115,7 @@ private: vector<Move> get_moves() {
 	nonCap.insert(nonCap.begin(), winning.begin(), winning.end());
 	return nonCap; //Compiles all moves into 1 vector with the best captures first
 }
-
+	   //TODO:Remove?
 	   /*private: bool capture_winning(Move& move) {
 		   if (move.pieceType >= move.pieceCapture) {
 			   return true;
