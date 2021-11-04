@@ -120,7 +120,7 @@ int main()
             Move bestMove;
             int diff = 3; //If not specififed difficulty is max
             if (input.find("diff") != string::npos) { // If difficulty is specified
-                string depthStr = input.substr(8);
+                string depthStr = input.substr(8); //Gets int of difficulty
                 diff = stoi(depthStr);
             }
             Search search;
