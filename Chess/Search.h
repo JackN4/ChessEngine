@@ -30,6 +30,7 @@ public: Move start_search(Board& board, int diffIn = 3) {
 		return negamax_iter(board);
 	}
 	else { //Limits search to a difficulty level
+		generator.seed(time(NULL)); //Check if works
 		SearchTable table; //Creates table
 		MoveCreator moveGen = MoveCreator(board); //Makes move generator
 		negamax_diff(moveGen, depths[diff], -max, max, table); //Searches with specified
