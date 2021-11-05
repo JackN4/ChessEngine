@@ -32,7 +32,7 @@ struct MoveStore { //Need to store a move in as smallest space possible to keep 
 	}
 };
 
-struct EntrySearch { //TODO: add age a //This defines the information stored in each entry of the table
+struct EntrySearch {  //This defines the information stored in each entry of the table
 	uint64_t key; //Zobrist key
 	MoveStore bestMove; //Best move for board
 	int depth; //Depth left to search
@@ -64,7 +64,7 @@ class SearchTable
 {
 	int tableSize = 0x2FFFFF; //Size of table
 	EntrySearch* table = new EntrySearch[tableSize]; //Array for table
-	public: void add(EntrySearch entry) { //TODO: change replacement  //Adds new entry
+	public: void add(EntrySearch entry) {  //Adds new entry
 		table[entry.key % tableSize] = entry;
 	}
 	public: pair<bool, EntrySearch> get_entry(uint64_t key) { //Gets entry
