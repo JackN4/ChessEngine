@@ -17,23 +17,24 @@ class Search
 	int max = 100000; //Used as infinity
 	Evaluator evaluator; 
 	std::default_random_engine generator;
-	std::uniform_real_distribution<double> distribution;
+	std::uniform_real_distribution<double> distribution; //TODO: make more random
 	enum difficulty { easy, medium, hard , impossible}; //difficulties
 	double randomness[3] = { 0.4, 0.2, 0.1 }; //How much randomness is added
 	int depths[3] = { 3,4,5 }; //The depth searched to
 	difficulty diff = hard; //default difficulty
 
 public: Move start_search(Board& board, int diffIn = 3) {
-	diff = (difficulty)diffIn;
+	diff = (difficulty)diffIn; //Gets difficulty as enum
 	int score;
-	if (diff == impossible) {
-		return negamax_iter(board).first;
+	if (diff == impossible) { //Searches to maximum depth
+		return negamax_iter(board);
 	}
-	else {
-		SearchTable table;
-		MoveCreator moveGen = MoveCreator(board);
-		negamax_diff(moveGen, depths[diff], -max, max, table);
-		print_moves(board, table, 0);
+	else { //Limits search to a difficulty level
+		generator.seed(time(NULL)); //Check if works
+		SearchTable table; //Creates table
+		MoveCreator moveGen = MoveCreator(board); //Makes move generator
+		negamax_diff(moveGen, depths[diff], -max, max, table); //Searches with specified
+		print_moves(board, table, 0);  
 		Move bestMove = moveGen.board.get_move_from_hash(table.get_entry(moveGen.board.zobristKey).second.bestMove); //Finds best move from hash table
 		table.delete_table(); //Deletes table
 		return bestMove;
@@ -84,7 +85,7 @@ int random_score(int score) {
 	return (score * (1+multi));
 }
 
-private: int negamax(MoveCreator &moveGen, int depth, int alpha, int beta, SearchTable &table) { //Performs negamax search //TODO: allow returning scores above beta or below alpha (fail-soft)
+private: int negamax(MoveCreator &moveGen, int depth, int alpha, int beta, SearchTable &table) { //Performs negamax search 
 	int origAlpha = alpha;
 	pair<bool, EntrySearch> entry = table.get_entry(moveGen.board.zobristKey); //Gets entry in transposition table from key
 	if (entry.first && entry.second.depth >= depth) {  //If entry depth is current depth or more
@@ -161,17 +162,17 @@ private: int negamax(MoveCreator &moveGen, int depth, int alpha, int beta, Searc
 		}
 	}
 	int nodeType;
-	if (bestScore <= origAlpha) { //Adds results to transposition table //TODO: mightve broken
+	if (bestScore <= origAlpha) { //Adds results to transposition table
 		nodeType = 3;
 	}
 	else{
 		nodeType = 1;
 	}
 	table.add(EntrySearch(moveGen.board.zobristKey, depth, bestScore, nodeType, bestMove));
-	return alpha; //TODO: Try to change to bestScore
+	return alpha;
 }
 
-private: int negamax_diff(MoveCreator& moveGen, int depth, int alpha, int beta, SearchTable& table) { //Performs negamax search //TODO: allow returning scores above beta or below alpha (fail-soft)
+private: int negamax_diff(MoveCreator& moveGen, int depth, int alpha, int beta, SearchTable& table) { //Performs negamax search to specified difficulty
 	int origAlpha = alpha;
 	pair<bool, EntrySearch> entry = table.get_entry(moveGen.board.zobristKey); //Gets entry in transposition table from key
 	if (entry.first && entry.second.depth >= depth) {  //If entry depth is current depth or more
@@ -194,7 +195,7 @@ private: int negamax_diff(MoveCreator& moveGen, int depth, int alpha, int beta, 
 		}
 	int score;
 	if (depth == 0) { //If depth is 0 an q search must be perform to make the board stable befor evaluation takes place
-		score = random_score(q_search(moveGen, alpha, beta, table));
+		score = random_score(q_search(moveGen, alpha, beta, table)); //Adds randomness to the returned score
 		table.add(EntrySearch(moveGen.board.zobristKey, 0, score, 1)); //Results added to trans table
 		return score;
 	}
@@ -204,7 +205,7 @@ private: int negamax_diff(MoveCreator& moveGen, int depth, int alpha, int beta, 
 		if (entry.second.bestMove.start != entry.second.bestMove.end) { //If it has a valid best move
 			Move move = moveGen.board.get_move_from_hash(entry.second.bestMove); //Gets move from entry 
 			moveGen.board.make_move(move); //Make move
-			score = random_score(-(negamax(moveGen, depth - 1, -beta, -alpha, table))); //Performs negamax search
+			score = random_score(-(negamax(moveGen, depth - 1, -beta, -alpha, table))); //Adds randomness to the returned score
 			moveGen.board.unmake_move(move); //Unmakes move
 			if (score >= beta) { //Fail high
 				table.add(EntrySearch(moveGen.board.zobristKey, depth, score, 2, bestMove));
@@ -234,7 +235,7 @@ private: int negamax_diff(MoveCreator& moveGen, int depth, int alpha, int beta, 
 
 	for (Move& move : allMoves) { //Iterates through moves
 		moveGen.board.make_move(move); //Makes move
-		score = random_score(-(negamax(moveGen, depth - 1, -beta, -alpha, table))); //Recursively calls function to get score
+		score = random_score(-(negamax(moveGen, depth - 1, -beta, -alpha, table))); //Adds randomness to the returned score
 		moveGen.board.unmake_move(move); //Unmakes move
 		if (score >= beta) { //Fail high
 			table.add(EntrySearch(moveGen.board.zobristKey, depth, score, 2, bestMove)); //Adds result to transposition table
@@ -249,17 +250,17 @@ private: int negamax_diff(MoveCreator& moveGen, int depth, int alpha, int beta, 
 		}
 	}
 	int nodeType;
-	if (bestScore <= origAlpha) { //Adds results to transposition table //TODO: mightve broken
+	if (bestScore <= origAlpha) { //Adds results to transposition table
 		nodeType = 3;
 	}
 	else {
 		nodeType = 1;
 	}
 	table.add(EntrySearch(moveGen.board.zobristKey, depth, bestScore, nodeType, bestMove));
-	return alpha; //TODO: Try to change to bestScore
+	return alpha; 
 }
 
-private: int q_search(MoveCreator& moveGen, int alpha, int beta, SearchTable& table) { //TODO: add check+checkmate - search all moves if in check //This search is done after the normal search to create a stable situation on the board by just searching captures
+private: int q_search(MoveCreator& moveGen, int alpha, int beta, SearchTable& table) {//This search is done after the normal search to create a stable situation on the board by just searching captures
 	int currentEval;
 	currentEval = evaluator.eval(moveGen.board); //We take the current evaluation as a lower bound
 	if (currentEval >= beta) { //If eval is higher than beta we can return beta as we know the move is too good to ever be searched

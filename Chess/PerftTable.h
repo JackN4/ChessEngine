@@ -31,7 +31,7 @@ class PerftTable
 {	
 	int tableSize = 0x2FFFFF; //The number of entries one table can have
 	EntryPerft* table = new EntryPerft[tableSize]; //Creates array
-	public: void add(EntryPerft entry) { //TODO: change replacement stratergy
+	public: void add(EntryPerft entry) {
 		table[entry.key % tableSize] = entry; //Adds new entry to table
 	}
 	public: pair<bool, uint64_t> get_count(uint64_t key, int depth) { //Gets count from entry
