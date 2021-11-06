@@ -27,7 +27,7 @@ public: Move start_search(Board& board, int diffIn = 3) {
 	diff = (difficulty)diffIn; //Gets difficulty as enum
 	int score;
 	if (diff == impossible) { //Searches to maximum depth
-		return negamax_iter(board);
+		return negamax_iter(board).first;
 	}
 	else { //Limits search to a difficulty level
 		generator.seed(time(NULL)); //Check if works
@@ -79,9 +79,6 @@ public: void print_moves(Board& board, SearchTable& table, int depth) { //Prints
 int random_score(int score) {
 	double multi = 2*randomness[diff]*(distribution(generator)-0.5);
 	int output = (score * (1 + multi));
-	cout << "multi: " << multi << "\n";
-	cout << "score: " << score << "\n";
-	cout << "output: " << output << "\n";
 	return (score * (1+multi));
 }
 
