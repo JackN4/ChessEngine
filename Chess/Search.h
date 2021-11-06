@@ -27,7 +27,7 @@ public: Move start_search(Board& board, int diffIn = 3) {
 	diff = (difficulty)diffIn;
 	int score;
 	if (diff == impossible) {
-		return negamax_iter(board);
+		return negamax_iter(board).first;
 	}
 	else {
 		SearchTable table;
@@ -41,7 +41,11 @@ public: Move start_search(Board& board, int diffIn = 3) {
 	
 }
 
-public: Move negamax_iter(Board& board, int depth = 7) { //Performs an iterative negamax search
+public: pair<Move, int> eval_search(Board& board) {
+	return negamax_iter(board, 6);
+}
+
+public: pair<Move, int> negamax_iter(Board& board, int depth = 7) { //Performs an iterative negamax search
 	SearchTable table;
 	Move bestMove;
 	MoveCreator moveGen = MoveCreator(board);
@@ -51,8 +55,9 @@ public: Move negamax_iter(Board& board, int depth = 7) { //Performs an iterative
 		print_moves(board, table, 0); //Prints current best line of moves found
 	}
 	bestMove = moveGen.board.get_move_from_hash(table.get_entry(moveGen.board.zobristKey).second.bestMove); //Finds best move from hash table
+	int eval = table.get_entry(moveGen.board.zobristKey).second.value;
 	table.delete_table(); //Deletes table
-	return bestMove;
+	return std::make_pair(bestMove, eval);
 }
 
 public: void print_moves(Board& board, SearchTable& table, int depth) { //Prints moves from Transposition table

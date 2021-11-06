@@ -117,15 +117,21 @@ int main()
             cout << "eval: " << score << "\n";
         }
         else if (input.rfind("go", 0) == 0) { //Finds best move
-            Move bestMove;
-            int diff = 3; //If not specififed difficulty is max
-            if (input.find("diff") != string::npos) { // If difficulty is specified
-                string depthStr = input.substr(8);
-                diff = stoi(depthStr);
-            }
             Search search;
-            bestMove = search.start_search(board, diff); //Searchs for best  move
-            cout << "bestmove " << bestMove.move_to_lerf() << "\n"; //Outputs best move
+            if (input.find("eval") != string::npos) {
+                pair<Move, int> result = search.eval_search(board);
+                cout << "bestmove " << result.first.move_to_lerf() << " eval " << result.second << "\n";
+            }
+            else {
+                Move bestMove;
+                int diff = 3; //If not specififed difficulty is max
+                if (input.find("diff") != string::npos) { // If difficulty is specified
+                    string depthStr = input.substr(8);
+                    diff = stoi(depthStr);
+                }
+                bestMove = search.start_search(board, diff); //Searchs for best  move
+                cout << "bestmove " << bestMove.move_to_lerf() << "\n"; //Outputs best move
+            }
         }
         else if (input == "zobrist") { //Outputs current zobrist key
             cout << (board.zobristKey) << "\n";
