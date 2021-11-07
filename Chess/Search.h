@@ -42,18 +42,29 @@ public: Move start_search(Board& board, int diffIn = 3) {
 	
 }
 
-public: pair<Move, int> eval_search(Board& board) {
-	return negamax_iter(board, 6);
+public: void eval_search(Board& board) {
+	MoveCreator moveGen = MoveCreator(board);
+	vector<Move> allMoves = moveGen.get_all_moves(); //Generates all moves
+	pair<Move, int> result;
+	for (Move& move : allMoves) { //Iterates through moves
+		moveGen.board.make_move(move); //Makes move
+		result = negamax_iter(moveGen.board, 5, false); //Recursively calls function to get score
+		cout << "move " << move.move_to_lerf() << " " << result.second << "\n";
+		moveGen.board.unmake_move(move); //Unmakes move
+	}
+	cout << "done" << "\n";
 }
 
-public: pair<Move, int> negamax_iter(Board& board, int depth = 7) { //Performs an iterative negamax search
+public: pair<Move, int> negamax_iter(Board& board, int depth = 7, bool print = true) { //Performs an iterative negamax search
 	SearchTable table;
 	Move bestMove;
 	MoveCreator moveGen = MoveCreator(board);
 	for (int i = 1; i <= depth; i++) { //Iterates 1 to depth start
 		negamax(moveGen, i, -max, max, table); //Performs negamax
-		cout << "Depth:" << i << "\n";
-		print_moves(board, table, 0); //Prints current best line of moves found
+		if (print) {
+			cout << "Depth:" << i << "\n";
+			print_moves(board, table, 0); //Prints current best line of moves found
+		}
 	}
 	bestMove = moveGen.board.get_move_from_hash(table.get_entry(moveGen.board.zobristKey).second.bestMove); //Finds best move from hash table
 	int eval = table.get_entry(moveGen.board.zobristKey).second.value;

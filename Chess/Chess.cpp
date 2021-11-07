@@ -119,8 +119,7 @@ int main()
         else if (input.rfind("go", 0) == 0) { //Finds best move
             Search search;
             if (input.find("eval") != string::npos) {
-                pair<Move, int> result = search.eval_search(board);
-                cout << "bestmove " << result.first.move_to_lerf() << " eval " << result.second << "\n";
+                 search.eval_search(board);
             }
             else {
                 Move bestMove;
