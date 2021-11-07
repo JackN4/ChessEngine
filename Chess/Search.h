@@ -42,14 +42,14 @@ public: Move start_search(Board& board, int diffIn = 3) {
 	
 }
 
-public: void eval_search(Board& board) {
+public: void eval_search(Board& board) { //Searches and outputs for training mode
 	MoveCreator moveGen = MoveCreator(board);
 	vector<Move> allMoves = moveGen.get_all_moves(); //Generates all moves
 	pair<Move, int> result;
 	for (Move& move : allMoves) { //Iterates through moves
 		moveGen.board.make_move(move); //Makes move
-		result = negamax_iter(moveGen.board, 5, false); //Recursively calls function to get score
-		cout << "move " << move.move_to_lerf() << " " << result.second << "\n";
+		result = negamax_iter(moveGen.board, 5, false); //gets an eval for that move
+		cout << "move " << move.move_to_lerf() << " " << result.second << "\n"; //outputs the move alongside its eval
 		moveGen.board.unmake_move(move); //Unmakes move
 	}
 	cout << "done" << "\n";
