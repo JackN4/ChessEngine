@@ -179,7 +179,7 @@ public: uint64_t calculate_perft_TT(Board board, int depth, bool debug, bool pri
 private: uint64_t calculate_moves_TT(MoveCreator& moveGen, int depth, PerftTable& table) { //Recursively called perft with transposition table
 	pair <bool, int> entry = table.get_count(moveGen.board.zobristKey, depth); //Gets entry from tranposition table
 	if (entry.first) { //If entry exists
- 		return entry.second; //Return count from entry
+		return entry.second; //Return count from entry
 	}
 	vector<Move> moves = moveGen.get_all_moves(); //Gets all moves
 	uint64_t total = 0;

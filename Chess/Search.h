@@ -19,7 +19,7 @@ class Search
 	std::default_random_engine generator;
 	std::uniform_real_distribution<double> distribution; //TODO: make more random
 	enum difficulty { easy, medium, hard , impossible}; //difficulties
-	double randomness[3] = { 0.4, 0.2, 0.1 }; //How much randomness is added
+	double randomness[3] = { 0.1, 0.05, 0.01 }; //How much randomness is added
 	int depths[3] = { 3,4,5 }; //The depth searched to
 	difficulty diff = hard; //default difficulty
 
@@ -33,6 +33,9 @@ public: Move start_search(Board& board, int diffIn = 3) {
 		generator.seed(time(NULL)); //Check if works
 		SearchTable table; //Creates table
 		MoveCreator moveGen = MoveCreator(board); //Makes move generator
+		cout << "depth: " << depths[diff] << "\n";
+		cout << "difficulty: " << diff << "\n";
+		cout << "random: " << randomness[diff] << "\n";
 		negamax_diff(moveGen, depths[diff], -max, max, table); //Searches with specified
 		print_moves(board, table, 0);  
 		Move bestMove = moveGen.board.get_move_from_hash(table.get_entry(moveGen.board.zobristKey).second.bestMove); //Finds best move from hash table
@@ -90,6 +93,9 @@ public: void print_moves(Board& board, SearchTable& table, int depth) { //Prints
 int random_score(int score) {
 	double multi = 2*randomness[diff]*(distribution(generator)-0.5);
 	int output = (score * (1 + multi));
+	//cout << "original score: " << score << "\n";
+	//cout << "output: " << (score * (1 + multi)) << "\n";
+	//cout << "mult: " << multi << "\n";
 	return (score * (1+multi));
 }
 
@@ -213,7 +219,7 @@ private: int negamax_diff(MoveCreator& moveGen, int depth, int alpha, int beta, 
 		if (entry.second.bestMove.start != entry.second.bestMove.end) { //If it has a valid best move
 			Move move = moveGen.board.get_move_from_hash(entry.second.bestMove); //Gets move from entry 
 			moveGen.board.make_move(move); //Make move
-			score = random_score(-(negamax(moveGen, depth - 1, -beta, -alpha, table))); //Adds randomness to the returned score
+			score = random_score(-(negamax_diff(moveGen, depth - 1, -beta, -alpha, table))); //Adds randomness to the returned score
 			moveGen.board.unmake_move(move); //Unmakes move
 			if (score >= beta) { //Fail high
 				table.add(EntrySearch(moveGen.board.zobristKey, depth, score, 2, bestMove));
@@ -243,7 +249,7 @@ private: int negamax_diff(MoveCreator& moveGen, int depth, int alpha, int beta, 
 
 	for (Move& move : allMoves) { //Iterates through moves
 		moveGen.board.make_move(move); //Makes move
-		score = random_score(-(negamax(moveGen, depth - 1, -beta, -alpha, table))); //Adds randomness to the returned score
+		score = random_score(-(negamax_diff(moveGen, depth - 1, -beta, -alpha, table))); //Adds randomness to the returned score
 		moveGen.board.unmake_move(move); //Unmakes move
 		if (score >= beta) { //Fail high
 			table.add(EntrySearch(moveGen.board.zobristKey, depth, score, 2, bestMove)); //Adds result to transposition table
