@@ -36,14 +36,14 @@ public: void eval_search(Board& board) { //Searches and outputs for training mod
 	pair<Move, int> result;
 	for (Move& move : allMoves) { //Iterates through moves
 		moveGen.board.make_move(move); //Makes move
-		result = negamax_iter(moveGen.board, 5, false); //gets an eval for that move
-		cout << "move " << move.move_to_lerf() << " " << result.second << "\n"; //outputs the move alongside its eval
+		result = negamax_iter(moveGen.board, 4, false); //gets an eval for that move
+		cout << "move " << move.move_to_lerf() << " " << -(result.second) << "\n"; //outputs the move alongside its eval
 		moveGen.board.unmake_move(move); //Unmakes move
 	}
 	cout << "done" << "\n";
 }
 
-public: pair<Move, int> negamax_iter(Board& board, int depth = 7, bool print = true) { //Performs an iterative negamax search
+public: pair<Move, int> negamax_iter(Board board, int depth = 7, bool print = true) { //Performs an iterative negamax search
 	SearchTable table;
 	Move bestMove;
 	MoveCreator moveGen = MoveCreator(board);
