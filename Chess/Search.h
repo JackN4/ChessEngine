@@ -15,7 +15,7 @@ class Search
 	int max = 100000; //Used as infinity
 	Evaluator evaluator; 
 	enum difficulty { easy, medium, hard , impossible}; //difficulties
-	int depths[3] = { 3,4,5 }; //The depth searched to
+	int depths[3] = { 3,4,6 }; //The depth searched to
 	difficulty diff = hard; //default difficulty
 
 public: Move start_search(Board& board, int diffIn = 3) {
